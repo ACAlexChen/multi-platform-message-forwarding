@@ -1,22 +1,22 @@
 {
   "name": "koishi-plugin-multi-platform-message-forwarding",
   "description": "多平台消息转发",
-  "version": "0.0.1",
+  "version": "2.1.2",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
-    "dist"
+    "dist",
+    "src"
   ],
   "license": "MIT",
-  "scripts": {},
+  "homepage": "https://github.com/ACAlexChen/koishi-plugin-multi-platform-message-forwarding",
   "keywords": [
     "chatbot",
     "koishi",
     "plugin"
   ],
-  "devDependencies": {},
   "peerDependencies": {
-    "koishi": "^4.17.6"
+    "koishi": "^4.17.5"
   }
 }
