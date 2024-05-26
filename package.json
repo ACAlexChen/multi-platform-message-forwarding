@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-multi-platform-message-forwarding",
   "description": "多平台消息转发",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -10,11 +10,19 @@
     "src"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/ACAlexChen/koishi-plugin-multi-platform-message-forwarding",
+  "homepage": "https://forum.koishi.xyz/t/topic/7909",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ACAlexChen/multi-platform-message-forwarding.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ACAlexChen/multi-platform-message-forwarding/issues"
+  },
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "message-forwarding"
   ],
   "peerDependencies": {
     "koishi": "^4.17.5"
