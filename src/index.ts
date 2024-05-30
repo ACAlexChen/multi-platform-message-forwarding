@@ -144,7 +144,7 @@ export function apply(ctx: Context,cfg:Config) {
               let userInfo = await session.bot.getGuildMember(session.guildId,session.userId)
               var userName = userInfo.user.name
             } else if (cfg.Nickname_Setting === true){
-              userName = session.username
+              var userName = session.username
             }
           }
           if (cfg.ChannelName_Setting === true){
