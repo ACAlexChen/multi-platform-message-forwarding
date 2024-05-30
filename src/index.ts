@@ -150,7 +150,11 @@ export function apply(ctx: Context,cfg:Config) {
             }
           }
           if (cfg.ChannelName_Setting === true){
-            ChannelName = session.event.channel.name
+            if (session.platform === 'kook'){
+              ChannelName = session.event.channel.name
+            } else {
+              ChannelName = (await session.bot.getChannel(session.channelId)).name
+            }
           }
           let messageInfo = []
           if (ChannelName) {
