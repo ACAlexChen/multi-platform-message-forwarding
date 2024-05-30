@@ -139,21 +139,19 @@ export function apply(ctx: Context,cfg:Config) {
     ctx.on('message',async (session) => {
       try {
         if (session.channelId === Original_Guild && session.platform === Original_Platform && session.userId !== Original_BotID && session.userId !== Target_BotID){
-          let userName : string
-          let ChannelName : string
           if (cfg.UserName_Setting === true){
             if (cfg.Nickname_Setting === false){
               let userInfo = await session.bot.getGuildMember(session.guildId,session.userId)
-              userName = userInfo.user.name
+              var userName = userInfo.user.name
             } else if (cfg.Nickname_Setting === true){
               userName = session.username
             }
           }
           if (cfg.ChannelName_Setting === true){
             if (session.platform === 'kook'){
-              ChannelName = session.event.channel.name
+              var ChannelName = session.event.channel.name
             } else {
-              ChannelName = (await session.bot.getChannel(session.channelId)).name
+              var ChannelName = (await session.bot.getChannel(session.channelId)).name
             }
           }
           let messageInfo = []
