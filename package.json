@@ -26,5 +26,8 @@
   ],
   "peerDependencies": {
     "koishi": "^4.17.5"
+  },
+  "koishi": {
+    "browser": true
   }
 }
