@@ -3,27 +3,9 @@ import {} from '@koishijs/plugin-adapter-kook'
 
 export const name = 'multi-platform-message-forwarding'
 
-export const reusable = true //插件可重用
+export const reusable = true
 
-/** 多平台消息转发插件配置
- * @param UserName_Package_Format 用户名称包装符号
- * @param ChannelName_Package_Format 频道名称包装符号
 
- * @param UserName_Setting 是否在转发消息前加上用户的名称
- * @param ChannelName_Setting 是否在转发消息前加上群聊/频道的名称
- * @param Nickname_Setting 是否使用群昵称作为消息开头（如果存在时）
- * @param Message_Wrapping_Setting 是否自动换行消息原文与消息开头
-
- * @param Forward_Mode 转发模式
- * @param Original_Target 消息源与转发目标
- * @param Original_Guild 消息源群聊/频道ID
- * @param Original_Platform 消息源平台
- * @param Original_BotID 消息源机器人ID
- * @param Target_Guild 转发目标群聊/频道ID
- * @param Target_Platform 转发目标平台
- * @param Target_BotID 转发目标机器人ID
- * @param note 备注
- */
 export interface Config {
   UserName_Package_Format?: string
   ChannelName_Package_Format?: string
@@ -43,6 +25,8 @@ export interface Config {
     Target_BotID: string
     note?:string
   }[]
+
+  Which_Platform_Use_getChannel: {}[]
 }
 
 
@@ -50,8 +34,6 @@ export interface Config {
 
 
 export const Config: Schema<Config> = Schema.intersect([
-  //基础设置
-  //群聊/频道包装符号配置项
   Schema.object({
     ChannelName_Setting: Schema.boolean().description('是否在转发消息前加上群聊/频道的名称').default(false),
   }).description('基础设置'),
@@ -63,7 +45,6 @@ export const Config: Schema<Config> = Schema.intersect([
     Schema.object({}),
   ]),
 
-  //用户名称包装符号配置项
   Schema.object({
     UserName_Setting: Schema.boolean().description('是否在转发消息前加上用户的名称').default(true),
   }),
@@ -76,18 +57,15 @@ export const Config: Schema<Config> = Schema.intersect([
     Schema.object({}),
   ]),
 
-  //消息自动换行配置项
   Schema.object({
     Message_Wrapping_Setting: Schema.boolean().description('是否自动换行消息原文与消息开头').default(false)
   }),
 
-  //转发设置
   Schema.object({
     Forward_Mode: Schema.union(['单向转发','双向转发','群聊互联！']).required().description('转发模式').role('radio'),
   }).description('转发设置'),
 
   Schema.union([
-    //单向转发模式
     Schema.object({
       Forward_Mode: Schema.const('单向转发').required(),
       Original_Target: Schema.array(Schema.object({
@@ -101,7 +79,6 @@ export const Config: Schema<Config> = Schema.intersect([
       })).role('table').description('消息源与转发目标（单向转发）')
     }),
 
-    //双向转发模式
     Schema.object({
       Forward_Mode: Schema.const('双向转发').required(),
       Original_Target: Schema.array(Schema.object({
@@ -115,7 +92,6 @@ export const Config: Schema<Config> = Schema.intersect([
       })).role('table').description('消息源与转发目标（双向转发）')
     }),
 
-    //群聊互联模式
     Schema.object({
       Forward_Mode: Schema.const('群聊互联！').required(),
       Original_Target: Schema.array(Schema.object({
@@ -128,13 +104,16 @@ export const Config: Schema<Config> = Schema.intersect([
         note: Schema.string().description('备注')
       })).role('table').description('消息源与转发目标（群聊互联！）')
     })
-  ])
+  ]),
+
+  Schema.object({
+    Which_Platform_Use_getChannel: Schema.array(String).role('table').description('哪些平台使用getChannel获取频道名称（无法正常获取频道名称时可尝试添加）').default(['discord'])
+  }).description('高级设置')
 ]) as Schema<Config>
 
 
 
 export function apply(ctx: Context,cfg:Config) {
-  //转发函数定义
   async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
     ctx.on('message',async (session) => {
       try {
@@ -148,10 +127,10 @@ export function apply(ctx: Context,cfg:Config) {
             }
           }
           if (cfg.ChannelName_Setting === true){
-            if (session.platform === 'kook'){
-              var ChannelName = session.event.channel.name
-            } else {
+            if (cfg.Which_Platform_Use_getChannel.includes(session.platform)){
               var ChannelName = (await session.bot.getChannel(session.channelId)).name
+            } else {
+              var ChannelName = session.event.channel.name
             }
           }
           let messageInfo = []
@@ -179,7 +158,7 @@ export function apply(ctx: Context,cfg:Config) {
   }
 
 
-
+  ctx.logger.info(cfg.Which_Platform_Use_getChannel)
 
 
   if (cfg.Forward_Mode === '单向转发'){
