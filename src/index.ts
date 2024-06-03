@@ -26,7 +26,11 @@ export interface Config {
     note?:string
   }[]
 
-  Which_Platform_Use_getChannel: {}[]
+  Which_Platform_Use_getChannel?: {}[]
+
+  KOOK_Use_CardMessage: boolean
+  KOOK_CardMessage_USE_MINE: boolean
+  KOOK_CardMessage_MY_MESSAGE?: string
 }
 
 
@@ -108,7 +112,27 @@ export const Config: Schema<Config> = Schema.intersect([
 
   Schema.object({
     Which_Platform_Use_getChannel: Schema.array(String).role('table').description('哪些平台使用getChannel获取频道名称（无法正常获取频道名称时可尝试添加）').default(['discord'])
-  }).description('高级设置')
+  }).description('高级设置'),
+
+  Schema.object({
+    KOOK_Use_CardMessage: Schema.boolean().description('是否使用卡片消息').default(true)
+  }).description('平台设置'),
+
+  Schema.union([
+    Schema.object({
+      KOOK_Use_CardMessage: Schema.const(true),
+      KOOK_CardMessage_USE_MINE: Schema.boolean().description('是否自定义卡片消息内容').default(false)
+    }),
+    Schema.object({}),
+  ]).description('卡片消息设置'),
+
+  Schema.union([
+    Schema.object({
+      KOOK_CardMessage_USE_MINE: Schema.const(true).required(),
+      KOOK_CardMessage_MY_MESSAGE: Schema.string().role('textarea').description('作者写的卡片消息内容太辣鸡了！lz要自己写！（注：自己写的卡片消息内容如果导致koishi崩溃等问题，一律由使用者本人承担）')
+    }),
+    Schema.object({}),
+  ])
 ]) as Schema<Config>
 
 
@@ -135,21 +159,94 @@ export function apply(ctx: Context,cfg:Config) {
           }
           let messageInfo = []
           if (ChannelName) {
-            messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
+            messageInfo.push({ChannelName : `${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`})
           }
           if (userName) {
-            messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
+            if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
+              messageInfo.push({UserName : `${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`})
+            } else if (cfg.Message_Wrapping_Setting === false){
+              messageInfo.push({UserName : `${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}：`})
+            } else if (cfg.Message_Wrapping_Setting === true){
+              messageInfo.push({UserName : `${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}：&#10;`})
+            }
           }
-  
-          if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
-            messageInfo.push(`${session.content}`)
-          } else if (cfg.Message_Wrapping_Setting === false){
-            messageInfo.push(`: ${session.content}`)
-          } else if (cfg.Message_Wrapping_Setting === true){
-            messageInfo.push(`: &#10;${session.content}`)
+
+          messageInfo.push({Message : session.content})
+
+          let message: any
+          if (cfg.KOOK_Use_CardMessage === true){
+
+            if (cfg.KOOK_CardMessage_USE_MINE === true){
+              message = cfg.KOOK_CardMessage_MY_MESSAGE
+            } else {
+              let MessageStart_ARR = []
+              if (cfg.ChannelName_Setting === true){
+                MessageStart_ARR.push(messageInfo.find(start => start.ChannelName))
+              }
+              if (cfg.UserName_Setting === true){
+                MessageStart_ARR.push(messageInfo.find(start => start.UserName))
+              }
+              let MessageStart = MessageStart_ARR.join(' ')
+
+              if (cfg.Message_Wrapping_Setting === false){
+                message = [
+                  {
+                    "type": "card",
+                    "theme": "secondary",
+                    "size": "lg",
+                    "modules": [
+                      {
+                        "type": "section",
+                        "text": {
+                          "type": "kmarkdown",
+                          "content": `(font)${MessageStart}(font)[pink]${session.content}`
+                        }
+                      }
+                    ]
+                  }
+                ]
+
+
+              } else {
+                message = [
+                  {
+                    "type": "card",
+                    "theme": "secondary",
+                    "size": "lg",
+                    "modules": [
+                      {
+                        "type": "section",
+                        "text": {
+                          "type": "kmarkdown",
+                          "content": `(font)${MessageStart}(font)[pink]`
+                        }
+                      },
+                      {
+                        "type": "divider"
+                      },
+                      {
+                        "type": "section",
+                        "text": {
+                          "type": "plain-text",
+                          "content": `${session.content}`
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+            ctx.bots[`kook:${Target_BotID}`].internal.createMessage({
+              type: 10,
+              target_id: Target_Guild,
+              content: JSON.stringify(message)
+            })
+
+
+          } else {
+            message = messageInfo.map(object => object.values(object)).flat().join(' ')
+            ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)
           }
-          let message = messageInfo.join(' ')
-          ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)
         }
       } catch (error) {
         ctx.logger.error(`消息转发函数错误：${error}`)
