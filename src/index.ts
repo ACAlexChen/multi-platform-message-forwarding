@@ -158,7 +158,7 @@ export function apply(ctx: Context,cfg:Config) {
   }
 
 
-  ctx.logger.info(cfg.Which_Platform_Use_getChannel)
+
 
 
   if (cfg.Forward_Mode === '单向转发'){
