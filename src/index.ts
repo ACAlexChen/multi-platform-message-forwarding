@@ -157,34 +157,20 @@ export function apply(ctx: Context,cfg:Config) {
               var ChannelName = session.event.channel.name
             }
           }
-          let messageInfo = []
-          if (ChannelName) {
-            messageInfo.push({ChannelName : `${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`})
-          }
-          if (userName) {
-            if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
-              messageInfo.push({UserName : `${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`})
-            } else if (cfg.Message_Wrapping_Setting === false){
-              messageInfo.push({UserName : `${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}：`})
-            } else if (cfg.Message_Wrapping_Setting === true){
-              messageInfo.push({UserName : `${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}：&#10;`})
-            }
-          }
-
-          messageInfo.push({Message : session.content})
+          
 
           let message: any
-          if (cfg.KOOK_Use_CardMessage === true){
+          if (cfg.KOOK_Use_CardMessage === true && Target_Platform === 'kook'){
 
             if (cfg.KOOK_CardMessage_USE_MINE === true){
               message = cfg.KOOK_CardMessage_MY_MESSAGE
             } else {
               let MessageStart_ARR = []
-              if (cfg.ChannelName_Setting === true){
-                MessageStart_ARR.push(messageInfo.find(start => start.ChannelName))
+              if (ChannelName) {
+                MessageStart_ARR.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
               }
-              if (cfg.UserName_Setting === true){
-                MessageStart_ARR.push(messageInfo.find(start => start.UserName))
+              if (userName) {
+                MessageStart_ARR.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
               }
               let MessageStart = MessageStart_ARR.join(' ')
 
@@ -199,7 +185,7 @@ export function apply(ctx: Context,cfg:Config) {
                         "type": "section",
                         "text": {
                           "type": "kmarkdown",
-                          "content": `(font)${MessageStart}(font)[pink]${session.content}`
+                          "content": `(font)${MessageStart}(font)[pink]：${session.content}`
                         }
                       }
                     ]
@@ -244,7 +230,22 @@ export function apply(ctx: Context,cfg:Config) {
 
 
           } else {
-            message = messageInfo.map(object => object.values(object)).flat().join(' ')
+            let messageInfo = []
+            if (ChannelName) {
+              messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
+            }
+            if (userName) {
+              messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
+            }
+    
+            if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
+              messageInfo.push(`${session.content}`)
+            } else if (cfg.Message_Wrapping_Setting === false){
+              messageInfo.push(`: ${session.content}`)
+            } else if (cfg.Message_Wrapping_Setting === true){
+              messageInfo.push(`: &#10;${session.content}`)
+            }
+            message = messageInfo.join('')
             ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)
           }
         }
