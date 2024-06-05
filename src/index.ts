@@ -6,6 +6,25 @@ export const name = 'multi-platform-message-forwarding'
 export const reusable = true
 
 
+
+
+
+
+export const usage = `
+## 123
+`
+
+
+
+
+
+
+
+
+
+
+
+
 export interface Config {
   UserName_Package_Format?: string
   ChannelName_Package_Format?: string
@@ -121,7 +140,7 @@ export const Config: Schema<Config> = Schema.intersect([
   Schema.union([
     Schema.object({
       KOOK_Use_CardMessage: Schema.const(true),
-      KOOK_CardMessage_USE_MINE: Schema.boolean().description('是否自定义卡片消息内容').default(false)
+      KOOK_CardMessage_USE_MINE: Schema.boolean().description('是否自定义卡片消息内容').default(false).hidden()
     }),
     Schema.object({}),
   ]).description('卡片消息设置'),
@@ -129,7 +148,7 @@ export const Config: Schema<Config> = Schema.intersect([
   Schema.union([
     Schema.object({
       KOOK_CardMessage_USE_MINE: Schema.const(true).required(),
-      KOOK_CardMessage_MY_MESSAGE: Schema.string().role('textarea').description('作者写的卡片消息内容太辣鸡了！lz要自己写！（注：自己写的卡片消息内容如果导致koishi崩溃等问题，一律由使用者本人承担）')
+      KOOK_CardMessage_MY_MESSAGE: Schema.string().role('textarea').description('作者写的卡片消息内容太辣鸡了！lz要自己写！（注：自己写的卡片消息内容如果导致koishi崩溃等问题，一律由使用者本人承担）').hidden()
     }),
     Schema.object({}),
   ])
@@ -138,8 +157,40 @@ export const Config: Schema<Config> = Schema.intersect([
 
 
 export function apply(ctx: Context,cfg:Config) {
+
+  let pass = []
+
+  ctx.command('TemporaryExclusion <time>', '临时排除转发功能', { authority: 3 })
+  .action(({session} , time) => {
+    pass.push(session.channelId)
+    let time_num = parseInt(time)
+    ctx.setTimeout(() => {
+      pass.splice(pass.indexOf(session.channelId),1)
+      session.send(`已恢复转发功能`)
+    }, time_num)
+    session.send(`已临时排除此频道转发功能${time_num}毫秒`)
+  })
+
+  ctx.command('CancelTE', '取消临时排除转发功能', { authority: 3 })
+  .action(({session}) => {
+    if (pass.includes(session.channelId)){
+      pass.splice(pass.indexOf(session.channelId),1)
+      session.send('已恢复转发功能')
+    } else if (!pass.includes(session.channelId)){
+      session.send('此频道未排除转发')
+    }
+  })
+
+
+
   async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
     ctx.on('message',async (session) => {
+
+
+
+      if (pass.includes(session.channelId)){
+        return
+      }
       try {
         if (session.channelId === Original_Guild && session.platform === Original_Platform && session.userId !== Original_BotID && session.userId !== Target_BotID){
           if (cfg.UserName_Setting === true){
