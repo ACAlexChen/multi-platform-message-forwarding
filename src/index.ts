@@ -1,4 +1,4 @@
-import { Context, Schema } from 'koishi'
+import { Context, Schema, h } from 'koishi'
 import {} from '@koishijs/plugin-adapter-kook'
 
 export const name = 'multi-platform-message-forwarding'
@@ -17,7 +17,15 @@ export const usage = `
 
 
 
-
+interface Original_Target {
+  Original_Guild: string
+  Original_Platform: string
+  Original_BotID: string
+  Target_Guild: string
+  Target_Platform: string
+  Target_BotID: string
+  note?:string
+}
 
 
 
@@ -43,6 +51,9 @@ export interface Config {
     Target_Platform: string
     Target_BotID: string
     note?:string
+  }[]
+  OT_EY: {
+    Original_Target: Original_Target[]
   }[]
 
   Which_Platform_Use_getChannel?: {}[]
@@ -117,15 +128,17 @@ export const Config: Schema<Config> = Schema.intersect([
 
     Schema.object({
       Forward_Mode: Schema.const('群聊互联！').required(),
-      Original_Target: Schema.array(Schema.object({
-        Original_Guild: Schema.string().required().description('群聊/频道ID'),
-        Original_Platform: Schema.string().required().description('平台'),
-        Original_BotID: Schema.string().required().description('机器人ID'),
-        Target_Guild: Schema.string().hidden().default('nothing'),
-        Target_Platform: Schema.string().hidden().default('nothing'),
-        Target_BotID: Schema.string().hidden().default('nothing'),
-        note: Schema.string().description('备注')
-      })).role('table').description('消息源与转发目标（群聊互联！）')
+      OT_EY: Schema.array(Schema.object({
+        Original_Target: Schema.array(Schema.object({
+          Original_Guild: Schema.string().required().description('群聊/频道ID'),
+          Original_Platform: Schema.string().required().description('平台'),
+          Original_BotID: Schema.string().required().description('机器人ID'),
+          Target_Guild: Schema.string().hidden().default('nothing'),
+          Target_Platform: Schema.string().hidden().default('nothing'),
+          Target_BotID: Schema.string().hidden().default('nothing'),
+          note: Schema.string().description('备注')
+        })).role('table').description('消息源与转发目标（群聊互联！）')
+      })).description('群聊互联列表')
     })
   ]),
 
@@ -182,7 +195,7 @@ export function apply(ctx: Context,cfg:Config) {
   })
 
 
-
+  let d = true
   async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
     ctx.on('message',async (session) => {
 
@@ -359,47 +372,49 @@ export function apply(ctx: Context,cfg:Config) {
             JSON.stringify(existingItem) === JSON.stringify(item)
         )
       }
-      for (let i = 0; i < cfg.Original_Target.length; i++) {
-        for (let o = i + 1; o < cfg.Original_Target.length; o++) {
-          let item_i = cfg.Original_Target[i]
-          let item_o = cfg.Original_Target[o]
-          let item_array = {
-            Original_Guild: item_i.Original_Guild,
-            Original_Platform: item_i.Original_Platform,
-            Original_BotID: item_i.Original_BotID,
-            Target_Guild: item_o.Original_Guild,
-            Target_Platform: item_o.Original_Platform,
-            Target_BotID: item_o.Original_BotID
-          }
-          let reverse_item_array = {
-            Original_Guild: item_o.Original_Guild,
-            Original_Platform: item_o.Original_Platform,
-            Original_BotID: item_o.Original_BotID,
-            Target_Guild: item_i.Original_Guild,
-            Target_Platform: item_i.Original_Platform,
-            Target_BotID: item_i.Original_BotID
-          }
-          if (!itemExists(item_array, existingItems)) {
-            existingItems.push(item_array)
-            Message_Forwarding(
-              item_i.Original_Guild,
-              item_i.Original_Platform,
-              item_i.Original_BotID,
-              item_o.Original_Guild,
-              item_o.Original_Platform,
-              item_o.Original_BotID
-            )
-          }
-          if (!itemExists(reverse_item_array, existingItems)) {
-            existingItems.push(reverse_item_array)
-            Message_Forwarding(
-              item_o.Original_Guild,
-              item_o.Original_Platform,
-              item_o.Original_BotID,
-              item_i.Original_Guild,
-              item_i.Original_Platform,
-              item_i.Original_BotID
-            )
+      for (let f = 0; f < cfg.OT_EY.length; f++) {
+        for (let i = 0; i < cfg.OT_EY[f].Original_Target.length; i++) {
+          for (let o = i + 1; o < cfg.OT_EY[f].Original_Target.length; o++) {
+            let item_i = cfg.OT_EY[f].Original_Target[i]
+            let item_o = cfg.OT_EY[f].Original_Target[o]
+            let item_array = {
+              Original_Guild: item_i.Original_Guild,
+              Original_Platform: item_i.Original_Platform,
+              Original_BotID: item_i.Original_BotID,
+              Target_Guild: item_o.Original_Guild,
+              Target_Platform: item_o.Original_Platform,
+              Target_BotID: item_o.Original_BotID
+            }
+            let reverse_item_array = {
+              Original_Guild: item_o.Original_Guild,
+              Original_Platform: item_o.Original_Platform,
+              Original_BotID: item_o.Original_BotID,
+              Target_Guild: item_i.Original_Guild,
+              Target_Platform: item_i.Original_Platform,
+              Target_BotID: item_i.Original_BotID
+            }
+            if (!itemExists(item_array, existingItems)) {
+              existingItems.push(item_array)
+              Message_Forwarding(
+                item_i.Original_Guild,
+                item_i.Original_Platform,
+                item_i.Original_BotID,
+                item_o.Original_Guild,
+                item_o.Original_Platform,
+                item_o.Original_BotID
+              )
+            }
+            if (!itemExists(reverse_item_array, existingItems)) {
+              existingItems.push(reverse_item_array)
+              Message_Forwarding(
+                item_o.Original_Guild,
+                item_o.Original_Platform,
+                item_o.Original_BotID,
+                item_i.Original_Guild,
+                item_i.Original_Platform,
+                item_i.Original_BotID
+              )
+            }
           }
         }
       }
