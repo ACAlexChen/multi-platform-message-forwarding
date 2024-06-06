@@ -5,7 +5,24 @@ export const name = 'multi-platform-message-forwarding'
 
 export const reusable = true
 
+export const inject = {
+  required: [
+    'database'
+  ],
+}
 
+
+
+
+
+function generateRandomString(length: number): string {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length))
+  }
+  return result
+}
 
 
 
@@ -34,6 +51,9 @@ interface Original_Target {
 
 
 export interface Config {
+  Use_Unity_Message_ID: boolean
+  Unity_Message_ID_Time : number
+
   UserName_Package_Format?: string
   ChannelName_Package_Format?: string
 
@@ -43,15 +63,7 @@ export interface Config {
   Message_Wrapping_Setting: boolean
 
   Forward_Mode: string
-  Original_Target: {
-    Original_Guild: string
-    Original_Platform: string
-    Original_BotID: string
-    Target_Guild: string
-    Target_Platform: string
-    Target_BotID: string
-    note?:string
-  }[]
+  Original_Target: Original_Target[]
   OT_EY: {
     Original_Target: Original_Target[]
   }[]
@@ -69,8 +81,18 @@ export interface Config {
 
 export const Config: Schema<Config> = Schema.intersect([
   Schema.object({
-    ChannelName_Setting: Schema.boolean().description('是否在转发消息前加上群聊/频道的名称').default(false),
+    Use_Unity_Message_ID: Schema.boolean().description('是否使用统一消息ID').default(true),
   }).description('基础设置'),
+  Schema.union([
+    Schema.object({
+      Use_Unity_Message_ID: Schema.const(true).required(),
+      Unity_Message_ID_Time: Schema.number().description('统一消息ID的有效期（毫秒）').default(1296000000),
+    }),
+    Schema.object({}),
+  ]),
+  Schema.object({
+    ChannelName_Setting: Schema.boolean().description('是否在转发消息前加上群聊/频道的名称').default(false),
+  }),
   Schema.union([
     Schema.object({
       ChannelName_Setting: Schema.const(true),
@@ -147,12 +169,12 @@ export const Config: Schema<Config> = Schema.intersect([
   }).description('高级设置'),
 
   Schema.object({
-    KOOK_Use_CardMessage: Schema.boolean().description('是否使用卡片消息').default(true)
+    KOOK_Use_CardMessage: Schema.boolean().description('是否使用卡片消息').default(false).experimental()
   }).description('平台设置'),
 
   Schema.union([
     Schema.object({
-      KOOK_Use_CardMessage: Schema.const(true),
+      KOOK_Use_CardMessage: Schema.const(true).required(),
       KOOK_CardMessage_USE_MINE: Schema.boolean().description('是否自定义卡片消息内容').default(false).hidden()
     }),
     Schema.object({}),
@@ -167,9 +189,104 @@ export const Config: Schema<Config> = Schema.intersect([
   ])
 ]) as Schema<Config>
 
-
+declare module 'koishi' {
+  interface Tables {
+    mpmf_message: Tables.MPMF_Message
+  }
+  namespace Tables {
+    interface MPMF_Message {
+      message_id : string
+      channel_id : string
+      platform : string
+      bot_id : string
+      unity_id : string
+    }
+  }
+}
 
 export function apply(ctx: Context,cfg:Config) {
+  if (cfg.Use_Unity_Message_ID === true){
+    ctx.model.extend('mpmf_message', {
+      message_id : 'string',
+      channel_id : 'string',
+      platform : 'string',
+      bot_id : 'string',
+      unity_id : 'string'
+    }, {
+      primary: ['message_id'],
+      autoInc: false
+    })
+
+    ctx.on('message',async (session) => {
+      try {
+        let message_id = session.messageId
+        let channel_id = session.channelId
+        let bot_id = session.selfId
+        let platform = session.platform
+        const createMessageToDatabase = async () => {
+          let unity_id = generateRandomString(20)
+          let unity_id_database
+          try {
+            unity_id_database = (await ctx.database.get('mpmf_message',{unity_id: [`${unity_id}`]}))[0]
+          } finally {
+            if (unity_id_database){
+              createMessageToDatabase()
+            } else {
+              await ctx.database.create('mpmf_message',{
+                message_id: message_id,
+                channel_id: channel_id,
+                platform: platform,
+                bot_id: bot_id,
+                unity_id: unity_id
+              })
+              ctx.setTimeout(async () => {
+                await ctx.database.remove('mpmf_message',{unity_id: [`${unity_id}`]})
+              }, cfg.Unity_Message_ID_Time)
+            }
+          }
+        }
+        createMessageToDatabase()
+      } catch (error) {
+        ctx.logger.error(`统一消息ID错误：${error}`)
+      }
+    })
+
+    ctx.on('message-deleted', async (session) => {
+      let message_id_original = session.messageId
+      let unity_id_list
+      try {
+        unity_id_list = (await ctx.database.get('mpmf_message',{message_id: [`${message_id_original}`]},['unity_id'])).map(item => item.unity_id)
+      } finally {
+        if (unity_id_list[0]){
+          for (let i = 0; i < unity_id_list.length; i++){
+            let message_id_list = await ctx.database.get('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
+            let message_id_target = message_id_list.find(item => item.message_id !== message_id_original)
+            await ctx.database.remove('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
+            await ctx.bots[`${message_id_target.platform}:${message_id_target.bot_id}`].deleteMessage(message_id_target.channel_id, message_id_target.message_id)
+          }
+        }
+      }
+    })
+
+    ctx.on('message-updated', async (session) => {
+      let message_id_original = session.messageId
+      let message_now = session.content
+      let unity_id_list
+      try {
+        unity_id_list = (await ctx.database.get('mpmf_message',{message_id: [`${message_id_original}`]},['unity_id'])).map(item => item.unity_id)
+      } finally {
+        if (unity_id_list[0]){
+          for (let i = 0; i < unity_id_list.length; i++){
+            let message_id_list = await ctx.database.get('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
+            let message_id_target = message_id_list.find(item => item.message_id !== message_id_original)
+            await ctx.database.remove('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
+            await ctx.bots[`${message_id_target.platform}:${message_id_target.bot_id}`].editMessage(message_id_target.channel_id, message_id_target.message_id, message_now)
+          }
+        }
+      }
+    })
+  }
+
 
   let pass = []
 
@@ -195,11 +312,12 @@ export function apply(ctx: Context,cfg:Config) {
   })
 
 
-  let d = true
+
   async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
     ctx.on('message',async (session) => {
 
-
+      let receive_message_id = session.messageId
+      let send_message_id
 
       if (pass.includes(session.channelId)){
         return
@@ -310,7 +428,18 @@ export function apply(ctx: Context,cfg:Config) {
               messageInfo.push(`: &#10;${session.content}`)
             }
             message = messageInfo.join('')
-            ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)
+            send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
+            console.log(send_message_id)
+            if (cfg.Use_Unity_Message_ID === true){
+              let unity_id = await ctx.database.get('mpmf_message',{message_id: [`${receive_message_id}`]}, ['unity_id'])
+              await ctx.database.create('mpmf_message',{
+                message_id: send_message_id,
+                channel_id: Target_Guild,
+                platform: Target_Platform,
+                bot_id: Target_BotID,
+                unity_id: unity_id[0].unity_id
+              })
+            }
           }
         }
       } catch (error) {
