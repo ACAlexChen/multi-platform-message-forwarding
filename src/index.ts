@@ -28,7 +28,7 @@ function generateRandomString(length: number): string {
 
 
 export const usage = `
-## 123
+### 
 `
 
 
@@ -85,7 +85,7 @@ export const Config: Schema<Config> = Schema.intersect([
   }).description('基础设置'),
   Schema.union([
     Schema.object({
-      Use_Unity_Message_ID: Schema.const(true).required(),
+      Use_Unity_Message_ID: Schema.const(true),
       Unity_Message_ID_Time: Schema.number().description('统一消息ID的有效期（毫秒）').default(1296000000),
     }),
     Schema.object({}),
@@ -290,7 +290,7 @@ export function apply(ctx: Context,cfg:Config) {
 
   let pass = []
 
-  ctx.command('TemporaryExclusion <time>', '临时排除转发功能', { authority: 3 })
+  ctx.command('TemporaryExclusion <time>', '临时排除转发功能（time单位：毫秒）', { authority: 3 })
   .action(({session} , time) => {
     pass.push(session.channelId)
     let time_num = parseInt(time)
