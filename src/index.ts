@@ -1,17 +1,26 @@
 import { Context, Schema, h } from 'koishi'
 import {} from '@koishijs/plugin-adapter-kook'
+import {} from 'koishi-plugin-binding-id-converter'
+import {} from '@koishijs/cache'
+
+
 
 export const name = 'multi-platform-message-forwarding'
 
 export const reusable = true
 
 export const inject = {
-  required: [
-    'database'
+  optional: [
+    'cache'
   ],
 }
 
-
+declare module '@koishijs/cache' {
+  interface Tables {
+    mpmf_message: string
+    mpmf_unity: string[]
+  }
+}
 
 
 
@@ -189,99 +198,55 @@ export const Config: Schema<Config> = Schema.intersect([
   ])
 ]) as Schema<Config>
 
-declare module 'koishi' {
-  interface Tables {
-    mpmf_message: Tables.MPMF_Message
-  }
-  namespace Tables {
-    interface MPMF_Message {
-      message_id : string
-      channel_id : string
-      platform : string
-      bot_id : string
-      unity_id : string
-    }
-  }
-}
+
 
 export function apply(ctx: Context,cfg:Config) {
-  if (cfg.Use_Unity_Message_ID === true){
-    ctx.model.extend('mpmf_message', {
-      message_id : 'string',
-      channel_id : 'string',
-      platform : 'string',
-      bot_id : 'string',
-      unity_id : 'string'
-    }, {
-      primary: ['message_id'],
-      autoInc: false
-    })
-
-    ctx.on('message',async (session) => {
-      try {
-        let message_id = session.messageId
-        let channel_id = session.channelId
-        let bot_id = session.selfId
-        let platform = session.platform
-        const createMessageToDatabase = async () => {
-          let unity_id = generateRandomString(20)
-          let unity_id_database
-          try {
-            unity_id_database = (await ctx.database.get('mpmf_message',{unity_id: [`${unity_id}`]}))[0]
-          } finally {
-            if (unity_id_database){
-              createMessageToDatabase()
+  if (cfg.Use_Unity_Message_ID === true && ctx.cache){
+    var cachechannel: string[] = []
+    if (cfg.Forward_Mode === '群聊互联！'){
+      cfg.OT_EY.forEach((channels) => {
+        channels.Original_Target.forEach((channel) => {
+          cachechannel.push(channel.Original_Guild)
+        })
+      })
+    } else if (cfg.Forward_Mode === '双向转发'){
+      cfg.Original_Target.forEach((channel) => {
+        cachechannel.push(channel.Original_Guild)
+        cachechannel.push(channel.Target_Guild)
+      })
+    } else if (cfg.Forward_Mode === '单向转发'){
+      cfg.Original_Target.forEach((channel) => {
+        cachechannel.push(channel.Original_Guild)
+      })
+    }
+    ctx.on('message', async (session) => {
+      if (cachechannel.includes(session.channelId)){
+        if (!(await ctx.cache.get('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`))){
+          const unity_id_create = async() => {
+            let unity_id = generateRandomString(20)
+            if (await ctx.cache.get('mpmf_unity', unity_id)){
+              unity_id_create()
             } else {
-              await ctx.database.create('mpmf_message',{
-                message_id: message_id,
-                channel_id: channel_id,
-                platform: platform,
-                bot_id: bot_id,
-                unity_id: unity_id
-              })
-              ctx.setTimeout(async () => {
-                await ctx.database.remove('mpmf_message',{unity_id: [`${unity_id}`]})
-              }, cfg.Unity_Message_ID_Time)
+              return unity_id
             }
           }
+          let unity_id = await unity_id_create()
+          await ctx.cache.set('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`, unity_id, cfg.Unity_Message_ID_Time)
+          await ctx.cache.set('mpmf_unity', unity_id, [], cfg.Unity_Message_ID_Time)
         }
-        createMessageToDatabase()
-      } catch (error) {
-        ctx.logger.error(`统一消息ID错误：${error}`)
       }
     })
-
     ctx.on('message-deleted', async (session) => {
-      let message_id_original = session.messageId
-      let unity_id_list
-      try {
-        unity_id_list = (await ctx.database.get('mpmf_message',{message_id: [`${message_id_original}`]},['unity_id'])).map(item => item.unity_id)
-      } finally {
-        if (unity_id_list[0]){
-          for (let i = 0; i < unity_id_list.length; i++){
-            let message_id_list = await ctx.database.get('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
-            let message_id_target = message_id_list.find(item => item.message_id !== message_id_original)
-            await ctx.database.remove('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
-            await ctx.bots[`${message_id_target.platform}:${message_id_target.bot_id}`].deleteMessage(message_id_target.channel_id, message_id_target.message_id)
-          }
-        }
-      }
-    })
-
-    ctx.on('message-updated', async (session) => {
-      let message_id_original = session.messageId
-      let message_now = session.content
-      let unity_id_list
-      try {
-        unity_id_list = (await ctx.database.get('mpmf_message',{message_id: [`${message_id_original}`]},['unity_id'])).map(item => item.unity_id)
-      } finally {
-        if (unity_id_list[0]){
-          for (let i = 0; i < unity_id_list.length; i++){
-            let message_id_list = await ctx.database.get('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
-            let message_id_target = message_id_list.find(item => item.message_id !== message_id_original)
-            await ctx.database.remove('mpmf_message',{unity_id: [`${unity_id_list[i]}`]})
-            await ctx.bots[`${message_id_target.platform}:${message_id_target.bot_id}`].editMessage(message_id_target.channel_id, message_id_target.message_id, message_now)
-          }
+      if (cachechannel.includes(session.channelId)){
+        let unity_id = await ctx.cache.get('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
+        if (unity_id){
+          let message_list = (await ctx.cache.get('mpmf_unity', unity_id))
+          message_list.forEach(async(message) => {
+            await ctx.bots[`${message.split(':')[2]}:${message.split(':')[3]}`].deleteMessage(message.split(':')[1], message.split(':')[0])
+            await ctx.cache.delete('mpmf_message', message)
+            await ctx.cache.delete('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
+            await ctx.cache.delete('mpmf_unity', unity_id)
+          })
         }
       }
     })
@@ -429,16 +394,13 @@ export function apply(ctx: Context,cfg:Config) {
             }
             message = messageInfo.join('')
             send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
-            console.log(send_message_id)
-            if (cfg.Use_Unity_Message_ID === true){
-              let unity_id = await ctx.database.get('mpmf_message',{message_id: [`${receive_message_id}`]}, ['unity_id'])
-              await ctx.database.create('mpmf_message',{
-                message_id: send_message_id,
-                channel_id: Target_Guild,
-                platform: Target_Platform,
-                bot_id: Target_BotID,
-                unity_id: unity_id[0].unity_id
-              })
+            if (ctx.cache){
+              if (await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)){
+                let unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
+                let message_list = (await ctx.cache.get('mpmf_unity', unity_id))
+                message_list.push(`${send_message_id}:${Target_Guild}:${Target_Platform}:${Target_BotID}`)
+                await ctx.cache.set('mpmf_unity', unity_id, message_list, cfg.Unity_Message_ID_Time)
+              }
             }
           }
         }
