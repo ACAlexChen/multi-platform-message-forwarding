@@ -77,8 +77,6 @@ export interface Config {
     Original_Target: Original_Target[]
   }[]
 
-  Which_Platform_Use_getChannel?: {}[]
-
   KOOK_Use_CardMessage: boolean
   KOOK_CardMessage_USE_MINE: boolean
   KOOK_CardMessage_MY_MESSAGE?: string
@@ -174,11 +172,7 @@ export const Config: Schema<Config> = Schema.intersect([
   ]),
 
   Schema.object({
-    Which_Platform_Use_getChannel: Schema.array(String).role('table').description('哪些平台使用getChannel获取频道名称（无法正常获取频道名称时可尝试添加）').default(['discord'])
-  }).description('高级设置'),
-
-  Schema.object({
-    KOOK_Use_CardMessage: Schema.boolean().description('是否使用卡片消息').default(false).experimental()
+    KOOK_Use_CardMessage: Schema.boolean().description('KOOK是否使用卡片消息').default(false).experimental()
   }).description('平台设置'),
 
   Schema.union([
@@ -298,15 +292,10 @@ export function apply(ctx: Context,cfg:Config) {
             }
           }
           if (cfg.ChannelName_Setting === true){
-            var ChannelName =
-                session.channelName || session.guildName;
+            var ChannelName = session.event.channel.name
             if (!ChannelName) {
                 if (typeof session.bot.getChannel === "function") {
-                    ChannelName = (
-                        await session.bot.getChannel(
-                            session.channelId
-                        )
-                    ).name;
+                    ChannelName = (await session.bot.getChannel(session.channelId)).name
                 }
             }
           }
