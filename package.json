@@ -29,6 +29,7 @@
 		"chatbot",
 		"koishi",
 		"plugin",
+		"koishi-plugin",
 		"forward",
 		"message-forwarding"
 	],
@@ -48,8 +49,9 @@
 	},
 	"scripts": {
 		"prepare": "husky",
-		"eslint": "eslint . --ext .js,.jsx,.ts,.tsx",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"build": "tsc -p .",
+		"pub": "npm run build && npm publish"
 	},
 	"husky": {
 		"hooks": {
@@ -63,6 +65,7 @@
 		]
 	},
 	"publishConfig": {
+		"registry": "https://registry.npmjs.org/",
 		"access": "public"
 	}
 }
