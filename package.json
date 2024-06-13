@@ -50,7 +50,8 @@
 	"scripts": {
 		"prepare": "husky",
 		"eslint": "eslint . --ext .js,.jsx,.ts,.tsx",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"publish": "npm publish --access public"
 	},
 	"husky": {
 		"hooks": {
