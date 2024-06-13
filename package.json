@@ -49,9 +49,8 @@
 	},
 	"scripts": {
 		"prepare": "husky",
-		"format": "prettier --write .",
-		"build": "tsc -p .",
-		"pub": "npm run build && npm publish"
+		"eslint": "eslint . --ext .js,.jsx,.ts,.tsx",
+		"format": "prettier --write ."
 	},
 	"husky": {
 		"hooks": {
