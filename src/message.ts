@@ -12,7 +12,7 @@ function getPlatform(Session: Session) {
 
 // TODO: 临时装饰器
 function msgDecorator(Session: Session) {
-	let msg = `<b>${getUserName(Session)}</b> 转发自 <i>${getPlatform(Session)}</i>：<br/>${Session.content}`;
+	const msg = `<b>${getUserName(Session)}</b> 转发自 <i>${getPlatform(Session)}</i>：<br/>${Session.content}`;
 	return msg;
 }
 

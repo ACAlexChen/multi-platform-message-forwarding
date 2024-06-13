@@ -1,7 +1,11 @@
 {
 	"name": "koishi-plugin-forward-hime",
 	"description": "多群组消息互通",
-	"version": "1.0.0-preview.0",
+	"version": "1.0.0-beta.0",
+	"author": {
+		"name": "xianii",
+		"email": "jiyucheng007@gmail.com"
+	},
 	"main": "lib/index.js",
 	"typings": "lib/index.d.ts",
 	"files": [
@@ -25,6 +29,7 @@
 		"chatbot",
 		"koishi",
 		"plugin",
+		"koishi-plugin",
 		"forward",
 		"message-forwarding"
 	],
@@ -45,7 +50,8 @@
 	"scripts": {
 		"prepare": "husky",
 		"eslint": "eslint . --ext .js,.jsx,.ts,.tsx",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"publish": "npm publish --access public"
 	},
 	"husky": {
 		"hooks": {
@@ -59,6 +65,7 @@
 		]
 	},
 	"publishConfig": {
+		"registry": "https://registry.npmjs.org/",
 		"access": "public"
 	}
 }
