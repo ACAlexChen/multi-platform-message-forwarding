@@ -16,3 +16,7 @@ tsconfig.tsbuildinfo
 *.ntvs*
 *.njsproj
 *.sln
+
+.yarn
+yarn.lock
+package-lock.json
