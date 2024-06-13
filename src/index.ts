@@ -298,13 +298,18 @@ export function apply(ctx: Context,cfg:Config) {
             }
           }
           if (cfg.ChannelName_Setting === true){
-            if (cfg.Which_Platform_Use_getChannel.includes(session.platform)){
-              var ChannelName = (await session.bot.getChannel(session.channelId)).name
-            } else {
-              var ChannelName = session.event.channel.name
+            var ChannelName =
+                session.channelName || session.guildName;
+            if (!ChannelName) {
+                if (typeof session.bot.getChannel === "function") {
+                    ChannelName = (
+                        await session.bot.getChannel(
+                            session.channelId
+                        )
+                    ).name;
+                }
             }
           }
-          
 
           let message: any
           if (cfg.KOOK_Use_CardMessage === true && Target_Platform === 'kook'){
