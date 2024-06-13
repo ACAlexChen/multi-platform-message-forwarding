@@ -3,7 +3,7 @@ import {} from "@koishijs/plugin-adapter-kook";
 // import {} from "@koishijs/cache";
 
 import {createConfig, ConfigSet} from "./config";
-import {logger} from "./logger";
+// import {logger} from "./logger";
 import {MessageForward} from "./message";
 
 export const reusable = true;
@@ -58,9 +58,9 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 	// );
 
 	ctx.on("message", async (session) => {
-		let hitGroup = [];
+		const hitGroup = [];
 		for (const g in cfg.Forward_Groups) {
-			let group = cfg.Forward_Groups[g];
+			const group = cfg.Forward_Groups[g];
 			for (const k in group.Forward_Node) {
 				if (
 					group.Forward_Node[k].Guild === session.channelId &&
@@ -73,7 +73,7 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 			}
 		}
 		for (const g in hitGroup) {
-			let group = cfg.Forward_Groups[hitGroup[g]];
+			const group = cfg.Forward_Groups[hitGroup[g]];
 			for (const k in group.Forward_Node) {
 				if (group.Forward_Node[k].Guild !== session.channelId) {
 					MessageForward(ctx, group.Forward_Node[k], session);
