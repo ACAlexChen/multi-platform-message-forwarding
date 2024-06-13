@@ -1,5 +1,3 @@
-# koishi-plugin-multi-platform-message-forwarding
+# title
 
-[![npm](https://img.shields.io/npm/v/koishi-plugin-multi-platform-message-forwarding?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-multi-platform-message-forwarding)
-
-多平台消息转发
+多群组消息互通
