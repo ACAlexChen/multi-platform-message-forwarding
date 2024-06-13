@@ -1,13 +1,17 @@
 {
 	"name": "koishi-plugin-forward-hime",
 	"description": "多群组消息互通",
-	"version": "0.0.1",
+	"version": "1.0.0-preview.0",
 	"main": "lib/index.js",
 	"typings": "lib/index.d.ts",
 	"files": [
 		"lib",
 		"dist"
 	],
+	"koishi": {
+		"preview": true,
+		"browser": true
+	},
 	"license": "MIT",
 	"homepage": "https://github.com/Nigh/forward-hime",
 	"repository": {
