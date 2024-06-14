@@ -1,10 +1,12 @@
 {
 	"compilerOptions": {
+		"baseUrl": ".",
 		"rootDir": "src",
 		"outDir": "lib",
 		"target": "es2022",
 		"module": "esnext",
 		"declaration": true,
+		"emitDeclarationOnly": true,
 		"composite": true,
 		"incremental": true,
 		"skipLibCheck": true,
