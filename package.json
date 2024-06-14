@@ -9,8 +9,7 @@
 	"main": "lib/index.js",
 	"typings": "lib/index.d.ts",
 	"files": [
-		"lib",
-		"dist"
+		"lib"
 	],
 	"koishi": {
 		"preview": true,
@@ -39,19 +38,22 @@
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "^7.13.0",
 		"@typescript-eslint/parser": "^7.13.0",
+		"atsc": "^2.1.0",
 		"eslint": "^9.4.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-prettier": "^5.1.3",
 		"eslint-plugin-unused-imports": "^4.0.0",
 		"husky": "^9.0.11",
 		"lint-staged": "^15.2.7",
-		"prettier": "^3.3.2"
+		"prettier": "^3.3.2",
+		"typescript": "^5.4.5"
 	},
 	"scripts": {
 		"prepare": "husky",
+		"build": "atsc -b",
 		"eslint": "eslint . --ext .js,.jsx,.ts,.tsx",
 		"format": "prettier --write .",
-		"publish": "npm publish --access public"
+		"pub": "npm publish --access public"
 	},
 	"husky": {
 		"hooks": {
