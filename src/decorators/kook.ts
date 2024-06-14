@@ -1,16 +1,18 @@
-import {Session, h} from "koishi";
+import {Element, h} from "koishi";
 
-export function kook(session: Session) {
-	session.elements.unshift(
-		h("b", `${session.author.name}`),
-		h("span", " 转发自 "),
-		h("i", `${session.platform}`),
-		h("span", `：`),
-		h("br"),
-	);
-	return session.content;
+import {Buffer} from "buffer";
+const transparentPixel = Buffer.from(
+	"R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
+	"base64",
+);
+
+export function kook({head, content}) {
+	let msg: Element[] = [];
+	msg = msg.concat(head, h("br"), content, h.image(transparentPixel, "image/gif"));
+	return msg;
 }
 
+// TODO: add custom kcard builder
 // import {logger} from "../logger";
 // interface KField {
 // 	Type: string;
