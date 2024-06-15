@@ -16,7 +16,7 @@ function defaultDeco({head, content}) {
 
 function defaultMiddleware(session: Session) {
 	let head: Element[] = [
-		h("b", `${session.author.name}`),
+		h("b", `${session.username}`),
 		h("span", " 转发自 "),
 		h("i", `${session.platform}`),
 		h("span", `：`),
