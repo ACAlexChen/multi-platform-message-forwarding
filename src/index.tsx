@@ -1,7 +1,7 @@
 import { Context, Schema, h } from 'koishi'
-import {} from '@koishijs/plugin-adapter-kook'
-import {} from 'koishi-plugin-binding-id-converter'
+import type { KookBot } from '@koishijs/plugin-adapter-kook'
 import {} from '@koishijs/cache'
+import {} from '@koishijs/plugin-server'
 
 
 
@@ -11,7 +11,8 @@ export const reusable = true
 
 export const inject = {
   optional: [
-    'cache'
+    'cache',
+    'server'
   ],
 }
 
@@ -33,8 +34,75 @@ function generateRandomString(length: number): string {
   return result
 }
 
+function KOOKCardMessage(){
 
+  function plainText(text: string){
+    let message = {
+      "type": "section",
+      "text": {
+        "type": "plain-text",
+        "content": `${text}`
+      }
+    }
+    return message
+  }
 
+  function kmarkdown(text: string){
+    let message = {
+      "type": "section",
+      "text": {
+        "type": "kmarkdown",
+        "content": `${text}`
+      }
+    }
+    return message
+  }
+
+  function image(url: string){
+    let message = {
+      "type": "container",
+      "elements": [
+        {
+          "type": "image",
+          "src": url
+        }
+      ]
+    }
+    return message
+  }
+
+  return {
+    plainText,
+    kmarkdown,
+    image
+  }
+}
+
+function parseTextWithImages(input: string): string[] {
+  const regex = /<img.*?\/?>/g
+  const matches = input.match(regex)
+  const resultArray: string[] = []
+
+  input.split(regex).forEach((item, index) => {
+    resultArray.push(item)
+    if (matches && index < matches.length) {
+      resultArray.push(matches[index])
+    }
+  })
+
+  return resultArray
+}
+
+function isImgTag(element: string): boolean {
+  const regex = /<img.*?\/?>/g
+  return regex.test(element)
+}
+
+function extractImgSrc(imgTag: string): string | null {
+  const regex = /<img.*?src=["'](.*?)["']/
+  const match = imgTag.match(regex)
+  return match ? match[1] : null
+}
 
 export const usage = `
 ### 
@@ -80,6 +148,7 @@ export interface Config {
   KOOK_Use_CardMessage: boolean
   KOOK_CardMessage_USE_MINE: boolean
   KOOK_CardMessage_MY_MESSAGE?: string
+  KOOK_CardMessage_compatibilityMode: boolean
 }
 
 
@@ -189,12 +258,17 @@ export const Config: Schema<Config> = Schema.intersect([
       KOOK_CardMessage_MY_MESSAGE: Schema.string().role('textarea').description('作者写的卡片消息内容太辣鸡了！lz要自己写！（注：自己写的卡片消息内容如果导致koishi崩溃等问题，一律由使用者本人承担）').hidden()
     }),
     Schema.object({}),
-  ])
+  ]),
+  
+  Schema.object({
+    KOOK_CardMessage_compatibilityMode: Schema.boolean().description('是否使用兼容模式').default(true).hidden()
+  })
 ]) as Schema<Config>
 
 
 
 export function apply(ctx: Context,cfg:Config) {
+
   if (cfg.Use_Unity_Message_ID === true && ctx.cache){
     var cachechannel: string[] = []
     if (cfg.Forward_Mode === '群聊互联！'){
@@ -285,8 +359,12 @@ export function apply(ctx: Context,cfg:Config) {
         if (session.channelId === Original_Guild && session.platform === Original_Platform && session.userId !== Original_BotID && session.userId !== Target_BotID){
           if (cfg.UserName_Setting === true){
             if (cfg.Nickname_Setting === false){
-              let userInfo = await session.bot.getGuildMember(session.guildId,session.userId)
-              var userName = userInfo.user.name
+              var userName = session.event.member.nick
+              if (!userName){
+                if (typeof session.bot.getUser === 'function'){
+                  userName = (await session.bot.getUser(session.userId)).nick
+                }
+              }
             } else if (cfg.Nickname_Setting === true){
               var userName = session.username
             }
@@ -294,16 +372,19 @@ export function apply(ctx: Context,cfg:Config) {
           if (cfg.ChannelName_Setting === true){
             var ChannelName = session.event.channel.name
             if (!ChannelName) {
-                if (typeof session.bot.getChannel === "function") {
+                if (typeof session.bot.getChannel === 'function') {
                     ChannelName = (await session.bot.getChannel(session.channelId)).name
+                } else {
+                  ctx.logger.warn(`${session.platform}平台适配器不支持获取频道名称`)
                 }
             }
           }
 
           let message: any
+          let modules: object[] = []
           if (cfg.KOOK_Use_CardMessage === true && Target_Platform === 'kook'){
 
-            if (cfg.KOOK_CardMessage_USE_MINE === true){
+            if (false){
               message = cfg.KOOK_CardMessage_MY_MESSAGE
             } else {
               let MessageStart_ARR = []
@@ -316,53 +397,74 @@ export function apply(ctx: Context,cfg:Config) {
               let MessageStart = MessageStart_ARR.join(' ')
 
               if (cfg.Message_Wrapping_Setting === false){
-                message = [
-                  {
-                    "type": "card",
-                    "theme": "secondary",
-                    "size": "lg",
-                    "modules": [
-                      {
-                        "type": "section",
-                        "text": {
-                          "type": "kmarkdown",
-                          "content": `(font)${MessageStart}(font)[pink]：${session.content}`
-                        }
-                      }
-                    ]
+                modules.push({
+                  "type": "section",
+                  "text": {
+                    "type": "kmarkdown",
+                    "content": `(font)${MessageStart}(font)[pink]：`
                   }
-                ]
-
+                })
 
               } else {
-                message = [
-                  {
-                    "type": "card",
-                    "theme": "secondary",
-                    "size": "lg",
-                    "modules": [
-                      {
-                        "type": "section",
-                        "text": {
-                          "type": "kmarkdown",
-                          "content": `(font)${MessageStart}(font)[pink]`
-                        }
-                      },
-                      {
-                        "type": "divider"
-                      },
-                      {
-                        "type": "section",
-                        "text": {
-                          "type": "plain-text",
-                          "content": `${session.content}`
-                        }
-                      }
-                    ]
+                modules.push({
+                  "type": "section",
+                  "text": {
+                    "type": "kmarkdown",
+                    "content": `(font)${MessageStart}(font)[pink]`
                   }
-                ]
+                },
+                {
+                  "type": "divider"
+                })
               }
             }
+
+            let Element = parseTextWithImages(session.content)
+            let elementDetermine = KOOKCardMessage()
+            for (let i = 0; i < Element.length; i++){
+              if (isImgTag(Element[i])){
+                if (cfg.KOOK_CardMessage_compatibilityMode === true){
+                  let messageInfo = []
+                  if (ChannelName) {
+                    messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
+                  }
+                  if (userName) {
+                    messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
+                  }
+          
+                  if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
+                    messageInfo.push(`${session.content}`)
+                  } else if (cfg.Message_Wrapping_Setting === false){
+                    messageInfo.push(`: ${session.content}`)
+                  } else if (cfg.Message_Wrapping_Setting === true){
+                    messageInfo.push(`: &#10;${session.content}`)
+                  }
+                  message = messageInfo.join('')
+                  send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
+                  if (ctx.cache){
+                    if (await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)){
+                      let unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
+                      let message_list = (await ctx.cache.get('mpmf_unity', unity_id))
+                      message_list.push(`${send_message_id}:${Target_Guild}:${Target_Platform}:${Target_BotID}`)
+                      await ctx.cache.set('mpmf_unity', unity_id, message_list, cfg.Unity_Message_ID_Time)
+                    }
+                  }
+                  return
+                } else {
+                  modules.push(elementDetermine.image((extractImgSrc(Element[i])).replace(/&amp;/g, '&')))
+                }
+              } else {
+                modules.push(elementDetermine.plainText(Element[i]))
+              }
+            }
+            message = [
+              {
+                "type": "card",
+                "theme": "secondary",
+                "size": "lg",
+                "modules": modules
+              }
+            ]
             ctx.bots[`kook:${Target_BotID}`].internal.createMessage({
               type: 10,
               target_id: Target_Guild,
