@@ -1,7 +1,7 @@
 import { Context, Schema, h } from 'koishi'
+
 import type { KookBot } from '@koishijs/plugin-adapter-kook'
 import {} from '@koishijs/cache'
-import {} from '@koishijs/plugin-server'
 
 
 
@@ -11,8 +11,7 @@ export const reusable = true
 
 export const inject = {
   optional: [
-    'cache',
-    'server'
+    'cache'
   ],
 }
 
@@ -269,6 +268,9 @@ export const Config: Schema<Config> = Schema.intersect([
 
 export function apply(ctx: Context,cfg:Config) {
 
+
+  
+  
   if (cfg.Use_Unity_Message_ID === true && ctx.cache){
     var cachechannel: string[] = []
     if (cfg.Forward_Mode === '群聊互联！'){
@@ -319,7 +321,6 @@ export function apply(ctx: Context,cfg:Config) {
       }
     })
   }
-
 
   let pass = []
 
@@ -488,8 +489,24 @@ export function apply(ctx: Context,cfg:Config) {
             } else if (cfg.Message_Wrapping_Setting === true){
               messageInfo.push(`: &#10;${session.content}`)
             }
+            let quote_message_id: string = ''
+            if (session.event.message.quote && ctx.cache && cfg.Use_Unity_Message_ID){
+              let unity_id_quote = await ctx.cache.get('mpmf_message', `${session.event.message.quote.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
+              let target_message_id = await ctx.cache.get('mpmf_unity', unity_id_quote)
+              for (let i = 0; i < target_message_id.length; i++){
+                if (target_message_id[i].split(':')[1] === Target_Guild && target_message_id[i].split(':')[2] === Target_Platform && target_message_id[i].split(':')[3] === Target_BotID){
+                  quote_message_id = target_message_id[i].split(':')[0]
+                  break
+                }
+              }
+            }
             message = messageInfo.join('')
-            send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
+            if (session.event.message.quote && ctx.cache && cfg.Use_Unity_Message_ID){
+              console.log(quote_message_id)
+              send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,h('quote', {id: quote_message_id}) + message)).toString()
+            } else {
+              send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
+            }
             if (ctx.cache){
               if (await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)){
                 let unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
