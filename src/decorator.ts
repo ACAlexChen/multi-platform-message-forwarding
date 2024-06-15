@@ -2,13 +2,9 @@ import {Session, Element, h} from "koishi";
 import {ForwardNode} from "./config";
 import {logger} from "./logger";
 
-import {kook} from "./decorators/kook";
+import * as decorator from "./decorators";
 
-const decorators = {
-	kook,
-};
-
-function defaultDeco({head, content}) {
+function defaultDecorator({head, content}) {
 	let msg: Element[] = [];
 	msg = msg.concat(head, h("br"), content);
 	return msg;
@@ -21,21 +17,39 @@ function defaultMiddleware(session: Session) {
 		h("i", `${session.platform}`),
 		h("span", `：`),
 	];
-	for (const key in session.elements) {
-		const element = session.elements[key];
-		if (element.type === "at") {
-			logger.info(element);
-			session.elements[key] = h("span", `@${element.attrs.name}`);
-		}
-	}
 	return {head: head, content: session.elements};
 }
 
+const localDecorators = [at2Name];
+
 export function MsgDecorator(session: Session, node: ForwardNode) {
-	const fw = defaultMiddleware(session);
-	if (typeof decorators[node.Platform] === "function") {
-		return decorators[node.Platform](fw);
+	let elems;
+	let _platform_in = decorator[session.platform];
+	let _platform_out = decorator[node.Platform];
+	if (_platform_in && typeof _platform_in.Middleware === "function") {
+		elems = _platform_in.Middleware(session);
 	} else {
-		return defaultDeco(fw);
+		elems = defaultMiddleware(session);
 	}
+
+	localDecorators.forEach((fn) => {
+		elems = fn(elems);
+	});
+
+	if (_platform_out && typeof _platform_out.Decorator === "function") {
+		return _platform_out.Decorator(elems);
+	} else {
+		return defaultDecorator(elems);
+	}
+}
+
+function at2Name({head, content}) {
+	for (const key in content) {
+		const element = content[key];
+		if (element.type === "at") {
+			// Note: onebot-qq at 无昵称
+			content[key] = h("span", `@${element.attrs.name || element.attrs.id}`);
+		}
+	}
+	return {head: head, content: content};
 }

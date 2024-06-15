@@ -3,7 +3,7 @@ import {} from "@koishijs/plugin-adapter-kook";
 // import {} from "@koishijs/cache";
 
 import {createConfig, ConfigSet} from "./config";
-// import {logger} from "./logger";
+import {logger} from "./logger";
 import {MessageForward} from "./message";
 
 export const reusable = true;
@@ -23,41 +23,7 @@ export const Config = createConfig();
 // }
 
 export function apply(ctx: Context, cfg: ConfigSet) {
-	// if (ctx.cache) {
-	// 	var cachechannel: string[] = [];
-	// 	cfg.Forward_Groups.forEach((channels) => {
-	// 		channels.Forward_Node.forEach((channel) => {
-	// 			cachechannel.push(channel.Guild);
-	// 		});
-	// 	});
-	// }
-
-	// let pass = [];
-
-	// ctx.command("TemporaryExclusion <time>", "临时排除转发功能（time单位：毫秒）", {
-	// 	authority: 3,
-	// }).action(({session}, time) => {
-	// 	pass.push(session.channelId);
-	// 	let time_num = parseInt(time);
-	// 	ctx.setTimeout(() => {
-	// 		pass.splice(pass.indexOf(session.channelId), 1);
-	// 		session.send(`已恢复转发功能`);
-	// 	}, time_num);
-	// 	session.send(`已临时排除此频道转发功能${time_num}毫秒`);
-	// });
-
-	// ctx.command("CancelTE", "取消临时排除转发功能", {authority: 3}).action(
-	// 	({session}) => {
-	// 		if (pass.includes(session.channelId)) {
-	// 			pass.splice(pass.indexOf(session.channelId), 1);
-	// 			session.send("已恢复转发功能");
-	// 		} else if (!pass.includes(session.channelId)) {
-	// 			session.send("此频道未排除转发");
-	// 		}
-	// 	},
-	// );
-
-	ctx.on("message", async (session) => {
+	ctx.on("message-created", async (session) => {
 		const hitGroup = [];
 		for (const g in cfg.Forward_Groups) {
 			const group = cfg.Forward_Groups[g];
@@ -67,6 +33,7 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 					group.Forward_Node[k].Platform === session.platform &&
 					group.Forward_Node[k].BotID !== session.userId
 				) {
+					logger.info("[message-created]", session.messageId, session.elements);
 					hitGroup.push(g);
 					break;
 				}
@@ -80,5 +47,12 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 				}
 			}
 		}
+	});
+	ctx.on("message-deleted", async (session) => {
+		logger.info("[message-deleted]", session.messageId);
+	});
+	// Note: KOOK消息编辑会改变消息ID
+	ctx.on("message-updated", async (session) => {
+		logger.info("[message-updated]", session.messageId, session);
 	});
 }
