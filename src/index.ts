@@ -1,7 +1,4 @@
 import {Context} from "koishi";
-import {} from "@koishijs/plugin-adapter-kook";
-// import {} from "@koishijs/cache";
-
 import {createConfig, ConfigSet} from "./config";
 import {logger} from "./logger";
 import {MessageForward} from "./message";
