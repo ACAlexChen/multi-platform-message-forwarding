@@ -1,7 +1,7 @@
 {
 	"name": "koishi-plugin-forward-hime",
 	"description": "多群组消息互通",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"author": {
 		"name": "xianii",
 		"email": "jiyucheng007@gmail.com"
@@ -12,7 +12,6 @@
 		"lib"
 	],
 	"koishi": {
-		"preview": true,
 		"browser": true
 	},
 	"license": "MIT",

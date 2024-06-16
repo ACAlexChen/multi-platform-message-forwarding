@@ -1,6 +1,5 @@
 import {Session, Element, h} from "koishi";
 import {ForwardNode} from "./config";
-import {logger} from "./logger";
 
 import * as decorator from "./decorators";
 

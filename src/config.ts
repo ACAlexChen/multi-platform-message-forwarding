@@ -1,5 +1,4 @@
 import {Schema} from "koishi";
-import {Config} from "./index";
 
 export interface ForwardNode {
 	Platform: string;
