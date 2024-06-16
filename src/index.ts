@@ -12,7 +12,7 @@ export const reusable = true;
 // 	optional: ["cache"],
 // };
 export const name = `forward hime - 转发姬`;
-const version = `<sub>v1.1.1</sub>`;
+const version = `<sub>v1.2.0</sub>`;
 export const usage = `
 # ${name} ${version}
 ## 配置说明
@@ -43,7 +43,11 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 					group.Nodes[k].Platform === session.platform &&
 					group.Nodes[k].BotID !== session.userId
 				) {
-					logger.info("[message-created]", session.messageId, session.elements);
+					logger.debug(
+						"[message-created]",
+						session.messageId,
+						session.elements,
+					);
 					hitGroup.push(g);
 					break;
 				}
@@ -59,10 +63,10 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 		}
 	});
 	ctx.on("message-deleted", async (session) => {
-		logger.info("[message-deleted]", session.messageId);
+		logger.debug("[message-deleted]", session.messageId);
 	});
 	// Note: KOOK消息编辑会改变消息ID
 	ctx.on("message-updated", async (session) => {
-		logger.info("[message-updated]", session.messageId, session);
+		logger.debug("[message-updated]", session.messageId, session);
 	});
 }
