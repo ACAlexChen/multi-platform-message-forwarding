@@ -4,7 +4,7 @@ import {logger} from "./logger";
 import {MessageForward, MessageDelete, MessageEdit} from "./message";
 
 export const name = `forward hime - 转发姬`;
-const version = `<sub>v1.2.0</sub>`;
+const version = `<sub>v1.2.1</sub>`;
 export const usage = `
 # ${name} ${version}
 ## 配置说明
