@@ -12,7 +12,6 @@
 		"lib"
 	],
 	"koishi": {
-		"preview": true,
 		"browser": true
 	},
 	"license": "MIT",
