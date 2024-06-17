@@ -18,7 +18,7 @@ export async function MessageForward(ctx: Context, node: ForwardNode, session: S
 					msgid: res[0],
 					uuid,
 				};
-				msgCache(ctx, mc);
+				msgCache(mc);
 				logger.debug("Forward", mc);
 			});
 	} catch (error) {
