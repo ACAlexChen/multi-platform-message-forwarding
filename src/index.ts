@@ -4,9 +4,8 @@ import {logger} from "./logger";
 import {MessageForward, MessageDelete, MessageEdit} from "./message";
 
 export const name = `forward hime - 转发姬`;
-const version = `<sub>v1.2.1</sub>`;
 export const usage = `
-# ${name} ${version}
+# ${name}
 ## 配置说明
 1. 添加 \`互通转发组\`
 2. 为添加的 \`互通转发组\` 配置转发节点。每个转发节点对应某个平台的一个频道或群组
