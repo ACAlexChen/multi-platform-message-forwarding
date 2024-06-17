@@ -4,9 +4,8 @@ import {logger} from "./logger";
 import {MessageForward, MessageDelete, MessageEdit} from "./message";
 
 export const name = `forward hime - 转发姬`;
-const version = `<sub>v1.2.1</sub>`;
 export const usage = `
-# ${name} ${version}
+# ${name}
 ## 配置说明
 1. 添加 \`互通转发组\`
 2. 为添加的 \`互通转发组\` 配置转发节点。每个转发节点对应某个平台的一个频道或群组
@@ -27,12 +26,15 @@ export const Config = createConfig();
 import {
 	MsgCache,
 	msgCache,
+	msgCacheInit,
 	msgCacheDelete,
 	msgCacheFindByKey,
 	msgCacheFindByUUID,
 } from "./cache";
 
 export function apply(ctx: Context, cfg: ConfigSet) {
+	msgCacheInit(ctx);
+
 	ctx.on("message-created", async (session) => {
 		const hitGroup = [];
 		for (const g in cfg.ForwardGroups) {
@@ -48,7 +50,7 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 						session.channelId + ":" + session.messageId,
 					);
 					let uuid = session.channelId + ":" + session.messageId;
-					msgCache(ctx, {
+					msgCache({
 						platform: session.platform,
 						bot: group.Nodes[k].BotID,
 						guild: session.channelId,
@@ -74,16 +76,16 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 		const cacheKey = session.channelId + ":" + session.messageId;
 		logger.debug("[message-deleted]", cacheKey);
 
-		msgCacheFindByKey(ctx, cacheKey).then((res) => {
+		msgCacheFindByKey(cacheKey).then((res) => {
 			if (res) {
 				logger.debug("[msgCacheFindByKey]", res);
-				msgCacheDelete(ctx, cacheKey);
+				msgCacheDelete(cacheKey);
 				const uuid = res.uuid;
-				msgCacheFindByUUID(ctx, uuid).then((res) => {
+				msgCacheFindByUUID(uuid).then((res) => {
 					if (res) {
 						for (const k in res) {
 							logger.debug("[message-delete]", res[k][1]);
-							msgCacheDelete(ctx, res[k][0]).then(() => {
+							msgCacheDelete(res[k][0]).then(() => {
 								MessageDelete(ctx, res[k][1]);
 							});
 						}
