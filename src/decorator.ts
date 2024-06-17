@@ -37,7 +37,7 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 	}
 
 	localDecorators.forEach((fn) => {
-		elems = fn(elems);
+		elems = fn(session, node, elems);
 	});
 	if (session.quote && session.quote.id) {
 		elems = await quoteTranslator(session, node, elems);
@@ -50,15 +50,20 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 	}
 }
 
-function at2Name({head, content}: ForwardMsg) {
+function at2Name(session: Session, node: ForwardNode, {head, content}: ForwardMsg) {
+	let newContent: Element[] = [];
 	for (const key in content) {
 		const element = content[key];
 		if (element.type === "at") {
-			// Note: onebot-qq at 无昵称
-			content[key] = h("span", `@${element.attrs.name || element.attrs.id}`);
+			if (element.attrs.id !== session.selfId) {
+				// Note: onebot-qq at 无昵称
+				newContent.push(h("span", `@${element.attrs.name || element.attrs.id}`));
+			}
+		} else {
+			newContent.push(element);
 		}
 	}
-	return {head: head, content: content} as ForwardMsg;
+	return {head: head, content: newContent} as ForwardMsg;
 }
 
 import {logger} from "./logger";
