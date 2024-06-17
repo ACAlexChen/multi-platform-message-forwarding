@@ -3,7 +3,12 @@ import {ForwardNode} from "./config";
 
 import * as decorator from "./decorators";
 
-function defaultDecorator({head, content}) {
+interface ForwardMsg {
+	head: Element[];
+	content: Element[];
+}
+
+function defaultDecorator({head, content}: ForwardMsg) {
 	let msg: Element[] = [];
 	msg = msg.concat(head, h("br"), content);
 	return msg;
@@ -16,13 +21,13 @@ function defaultMiddleware(session: Session) {
 		h("i", `${session.platform}`),
 		h("span", `：`),
 	];
-	return {head: head, content: session.elements};
+	return {head: head, content: session.elements} as ForwardMsg;
 }
 
 const localDecorators = [at2Name];
 
-export function MsgDecorator(session: Session, node: ForwardNode) {
-	let elems;
+export async function MsgDecorator(session: Session, node: ForwardNode) {
+	let elems: ForwardMsg;
 	let _platform_in = decorator[session.platform];
 	let _platform_out = decorator[node.Platform];
 	if (_platform_in && typeof _platform_in.Middleware === "function") {
@@ -34,6 +39,9 @@ export function MsgDecorator(session: Session, node: ForwardNode) {
 	localDecorators.forEach((fn) => {
 		elems = fn(elems);
 	});
+	if (session.quote && session.quote.id) {
+		elems = await quoteTranslator(session, node, elems);
+	}
 
 	if (_platform_out && typeof _platform_out.Decorator === "function") {
 		return _platform_out.Decorator(elems);
@@ -42,7 +50,7 @@ export function MsgDecorator(session: Session, node: ForwardNode) {
 	}
 }
 
-function at2Name({head, content}) {
+function at2Name({head, content}: ForwardMsg) {
 	for (const key in content) {
 		const element = content[key];
 		if (element.type === "at") {
@@ -50,5 +58,25 @@ function at2Name({head, content}) {
 			content[key] = h("span", `@${element.attrs.name || element.attrs.id}`);
 		}
 	}
-	return {head: head, content: content};
+	return {head: head, content: content} as ForwardMsg;
+}
+
+import {logger} from "./logger";
+import {msgCacheFindByKey, msgCacheGetLocalIDByUUID} from "./cache";
+async function quoteTranslator(
+	session: Session,
+	node: ForwardNode,
+	{head, content}: ForwardMsg,
+) {
+	const key = session.channelId + ":" + session.quote.id;
+	const cache = await msgCacheFindByKey(key);
+	if (cache) {
+		let msgid = await msgCacheGetLocalIDByUUID(node, cache.uuid);
+		if (msgid) {
+			head.unshift(h("quote", {id: msgid}));
+		} else {
+			logger.error(`[msgCacheGetLocalIDByUUID] ${cache.uuid} not found`);
+		}
+	}
+	return {head: head, content: content} as ForwardMsg;
 }

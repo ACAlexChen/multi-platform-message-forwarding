@@ -5,11 +5,12 @@ import {MsgDecorator} from "./decorator";
 import {MsgCache, msgCache} from "./cache";
 
 export async function MessageForward(ctx: Context, node: ForwardNode, session: Session) {
+	const uuid = session.channelId + ":" + session.messageId;
+	const content = await MsgDecorator(session, node);
 	try {
 		botExistsCheck(ctx, node);
-		const uuid = session.channelId + ":" + session.messageId;
 		await ctx.bots[`${node.Platform}:${node.BotID}`]
-			.sendMessage(node.Guild, MsgDecorator(session, node))
+			.sendMessage(node.Guild, content)
 			.then((res) => {
 				let mc = {
 					platform: node.Platform,
@@ -19,10 +20,10 @@ export async function MessageForward(ctx: Context, node: ForwardNode, session: S
 					uuid,
 				};
 				msgCache(mc);
-				logger.debug("Forward", mc);
+				logger.debug(`[MessageForward] to ${mc.platform} ${mc.uuid}`);
 			});
 	} catch (error) {
-		logger.error(`ERROR:<MessageSend> ${error}`);
+		logger.error(`ERROR:<MessageSend> ${error}`, content);
 	}
 }
 
