@@ -24,10 +24,10 @@ function defaultMiddleware(session: Session) {
 	return {head: head, content: session.elements} as ForwardMsg;
 }
 
-const localDecorators = [at2Name];
+const localDecorators = [atTranslator, quoteTranslator];
 
 export async function MsgDecorator(session: Session, node: ForwardNode) {
-	let elems: ForwardMsg;
+	let elems: ForwardMsg = {head: [], content: []};
 	let _platform_in = decorator[session.platform];
 	let _platform_out = decorator[node.Platform];
 	if (_platform_in && typeof _platform_in.Middleware === "function") {
@@ -36,9 +36,9 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 		elems = defaultMiddleware(session);
 	}
 
-	localDecorators.forEach((fn) => {
-		elems = fn(session, node, elems);
-	});
+	for (const fn of localDecorators) {
+		elems = (await fn(session, node, elems)) as ForwardMsg;
+	}
 	if (session.quote && session.quote.id) {
 		elems = await quoteTranslator(session, node, elems);
 	}
@@ -50,20 +50,29 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 	}
 }
 
-function at2Name(session: Session, node: ForwardNode, {head, content}: ForwardMsg) {
-	let newContent: Element[] = [];
-	for (const key in content) {
-		const element = content[key];
-		if (element.type === "at") {
-			if (element.attrs.id !== session.selfId) {
-				// Note: onebot-qq at 无昵称
-				newContent.push(h("span", `@${element.attrs.name || element.attrs.id}`));
+async function atTranslator(
+	session: Session,
+	node: ForwardNode,
+	{head, content}: ForwardMsg,
+) {
+	const newMsg = await new Promise((resolve, reject) => {
+		let newContent: Element[] = [];
+		for (const key in content) {
+			const element = content[key];
+			if (element.type === "at") {
+				if (element.attrs.id !== session.selfId) {
+					// Note: onebot-qq at 无昵称
+					newContent.push(
+						h("span", `@${element.attrs.name || element.attrs.id}`),
+					);
+				}
+			} else {
+				newContent.push(element);
 			}
-		} else {
-			newContent.push(element);
 		}
-	}
-	return {head: head, content: newContent} as ForwardMsg;
+		resolve({head: head, content: newContent} as ForwardMsg);
+	});
+	return newMsg;
 }
 
 import {logger} from "./logger";
@@ -73,6 +82,9 @@ async function quoteTranslator(
 	node: ForwardNode,
 	{head, content}: ForwardMsg,
 ) {
+	if (!session.quote || !session.quote.id) {
+		return {head: head, content: content} as ForwardMsg;
+	}
 	const key = session.channelId + ":" + session.quote.id;
 	const cache = await msgCacheFindByKey(key);
 	if (cache) {
