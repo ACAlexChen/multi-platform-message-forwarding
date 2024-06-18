@@ -39,9 +39,6 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 	for (const fn of localDecorators) {
 		elems = (await fn(session, node, elems)) as ForwardMsg;
 	}
-	if (session.quote && session.quote.id) {
-		elems = await quoteTranslator(session, node, elems);
-	}
 
 	if (_platform_out && typeof _platform_out.Decorator === "function") {
 		return _platform_out.Decorator(elems);
