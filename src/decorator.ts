@@ -47,6 +47,29 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 	}
 }
 
+function defaultDecoratorFallback({head, content}: ForwardMsg) {
+	let msg: Element[] = [];
+	let newContent: Element[] = [];
+	newContent.push(h("span", `[消息降级] `));
+	for (const key in content) {
+		if (["img", "audio", "video", "file"].includes(content[key].type)) {
+			newContent.push(h("span", ` [${content[key].type}] `));
+		} else {
+			newContent.push(content[key]);
+		}
+	}
+	msg = msg.concat(head, h("br"), newContent);
+	return msg;
+}
+export async function MsgDecoratorFallback(session: Session, node: ForwardNode) {
+	let elems: ForwardMsg = {head: [], content: []};
+	elems = defaultMiddleware(session);
+	for (const fn of localDecorators) {
+		elems = (await fn(session, node, elems)) as ForwardMsg;
+	}
+	return defaultDecoratorFallback(elems);
+}
+
 async function atTranslator(
 	session: Session,
 	node: ForwardNode,

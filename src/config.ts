@@ -10,6 +10,7 @@ export interface ForwardNode {
 export interface ConfigSet {
 	WithChannelName: boolean;
 	WithPlatformName: boolean;
+	CacheTimeout: number;
 	ForwardGroups: {
 		Nodes: ForwardNode[];
 	}[];
@@ -24,7 +25,16 @@ export const createConfig = () =>
 			WithPlatformName: Schema.boolean()
 				.description("是否包含平台名称")
 				.default(true),
-		}).description("转发格式"),
+		})
+			.description("转发格式")
+			.hidden(),
+		Schema.object({
+			CacheTimeout: Schema.number()
+				.description("消息缓存时间（分钟）- 影响跨平台删除与回复等功能")
+				.default(120)
+				.min(120)
+				.max(1440 * 7),
+		}).description("消息缓存"),
 
 		Schema.object({
 			ForwardGroups: Schema.array(
