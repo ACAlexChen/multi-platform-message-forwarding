@@ -49,11 +49,11 @@ export async function MessageDelete(ctx: Context, msg: MsgCache) {
 	) {
 		return;
 	}
-	try {
-		await ctx.bots[`${msg.platform}:${msg.bot}`].deleteMessage(msg.guild, msg.msgid);
-	} catch (error) {
-		logger.error(`ERROR:<MessageDelete> ${error}`);
-	}
+	await ctx.bots[`${msg.platform}:${msg.bot}`]
+		.deleteMessage(msg.guild, msg.msgid)
+		.catch((error) => {
+			logger.error(`ERROR:<MessageDelete> ${error}`);
+		});
 }
 
 export async function MessageEdit(ctx: Context, node: ForwardNode, session: Session) {
