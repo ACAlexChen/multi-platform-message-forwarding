@@ -45,6 +45,9 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 					group.Nodes[k].Platform === session.platform &&
 					group.Nodes[k].BotID !== session.userId
 				) {
+					if (!session.channelId || !session.messageId) {
+						continue;
+					}
 					logger.debug(
 						"[message-created]",
 						session.channelId + ":" + session.messageId,
