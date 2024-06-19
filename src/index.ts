@@ -33,7 +33,7 @@ import {
 } from "./cache";
 
 export function apply(ctx: Context, cfg: ConfigSet) {
-	msgCacheInit(ctx);
+	msgCacheInit(ctx, cfg);
 
 	ctx.on("message-created", async (session) => {
 		const hitGroup = [];

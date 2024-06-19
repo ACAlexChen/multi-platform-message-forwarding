@@ -1,4 +1,5 @@
 import {Context} from "koishi";
+import {ConfigSet} from "./config";
 import {logger} from "./logger";
 
 export interface MsgCache {
@@ -18,14 +19,16 @@ declare module "@koishijs/cache" {
 	}
 }
 let ctx;
+let cacheTimeout = 86400 * 1000;
 function cacheNotEnabled() {
 	if (!ctx.cache) {
 		return true;
 	}
 	return false;
 }
-export function msgCacheInit(context: Context) {
+export function msgCacheInit(context: Context, cfg: ConfigSet) {
 	ctx = context;
+	cacheTimeout = 60 * cfg.CacheTimeout * 1000;
 }
 export async function msgCache(mc: MsgCache) {
 	if (cacheNotEnabled()) {
@@ -33,7 +36,7 @@ export async function msgCache(mc: MsgCache) {
 	}
 	const key = mc.guild + ":" + mc.msgid;
 	logger.debug(`[message-cache] ${mc.platform} ${key}`);
-	await ctx.cache.set("msgCache", key, mc, 86400 * 1000);
+	await ctx.cache.set("msgCache", key, mc, cacheTimeout);
 }
 
 export async function msgCacheDelete(key: string) {
