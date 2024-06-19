@@ -24,22 +24,23 @@ async function MessageSendWithDecorator(
 			};
 			msgCache(mc);
 			logger.debug(`[MessageForward] to ${mc.platform} ${mc.uuid}`);
+		})
+		.catch((error) => {
+			throw error;
 		});
 }
 export async function MessageForward(ctx: Context, node: ForwardNode, session: Session) {
 	if (!botExistsCheck(ctx, node)) {
 		return;
 	}
-	try {
-		MessageSendWithDecorator(ctx, node, session, MsgDecorator);
-	} catch (error) {
-		logger.error(`ERROR:<MessageSend> ${error}`);
-		try {
-			MessageSendWithDecorator(ctx, node, session, MsgDecoratorFallback);
-		} catch (error) {
-			logger.error(`ERROR:<MessageSendFallback> ${error}`);
-		}
-	}
+	MessageSendWithDecorator(ctx, node, session, MsgDecorator).catch((error) => {
+		logger.error(`ERROR:<MessageSend ${node.Platform}> ${error}`);
+		MessageSendWithDecorator(ctx, node, session, MsgDecoratorFallback).catch(
+			(error) => {
+				logger.error(`ERROR:<MessageSendFallback ${node.Platform}> ${error}`);
+			},
+		);
+	});
 }
 
 export async function MessageDelete(ctx: Context, msg: MsgCache) {
@@ -48,11 +49,11 @@ export async function MessageDelete(ctx: Context, msg: MsgCache) {
 	) {
 		return;
 	}
-	try {
-		await ctx.bots[`${msg.platform}:${msg.bot}`].deleteMessage(msg.guild, msg.msgid);
-	} catch (error) {
-		logger.error(`ERROR:<MessageDelete> ${error}`);
-	}
+	await ctx.bots[`${msg.platform}:${msg.bot}`]
+		.deleteMessage(msg.guild, msg.msgid)
+		.catch((error) => {
+			logger.error(`ERROR:<MessageDelete> ${error}`);
+		});
 }
 
 export async function MessageEdit(ctx: Context, node: ForwardNode, session: Session) {
