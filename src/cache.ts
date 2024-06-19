@@ -33,7 +33,7 @@ export async function msgCache(mc: MsgCache) {
 	}
 	const key = mc.guild + ":" + mc.msgid;
 	logger.debug(`[message-cache] ${mc.platform} ${key}`);
-	await ctx.cache.set("msgCache", key, mc, 7200 * 1000);
+	await ctx.cache.set("msgCache", key, mc, 86400 * 1000);
 }
 
 export async function msgCacheDelete(key: string) {
