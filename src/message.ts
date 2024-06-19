@@ -34,10 +34,10 @@ export async function MessageForward(ctx: Context, node: ForwardNode, session: S
 		return;
 	}
 	MessageSendWithDecorator(ctx, node, session, MsgDecorator).catch((error) => {
-		logger.error(`ERROR:<MessageSend> ${error}`);
+		logger.error(`ERROR:<MessageSend ${node.Platform}> ${error}`);
 		MessageSendWithDecorator(ctx, node, session, MsgDecoratorFallback).catch(
 			(error) => {
-				logger.error(`ERROR:<MessageSendFallback> ${error}`);
+				logger.error(`ERROR:<MessageSendFallback ${node.Platform}> ${error}`);
 			},
 		);
 	});

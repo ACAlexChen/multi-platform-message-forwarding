@@ -50,6 +50,7 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 					}
 					logger.debug(
 						"[message-created]",
+						session.platform,
 						session.channelId + ":" + session.messageId,
 					);
 					let uuid = session.channelId + ":" + session.messageId;
