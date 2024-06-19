@@ -24,22 +24,23 @@ async function MessageSendWithDecorator(
 			};
 			msgCache(mc);
 			logger.debug(`[MessageForward] to ${mc.platform} ${mc.uuid}`);
+		})
+		.catch((error) => {
+			throw error;
 		});
 }
 export async function MessageForward(ctx: Context, node: ForwardNode, session: Session) {
 	if (!botExistsCheck(ctx, node)) {
 		return;
 	}
-	try {
-		MessageSendWithDecorator(ctx, node, session, MsgDecorator);
-	} catch (error) {
+	MessageSendWithDecorator(ctx, node, session, MsgDecorator).catch((error) => {
 		logger.error(`ERROR:<MessageSend> ${error}`);
-		try {
-			MessageSendWithDecorator(ctx, node, session, MsgDecoratorFallback);
-		} catch (error) {
-			logger.error(`ERROR:<MessageSendFallback> ${error}`);
-		}
-	}
+		MessageSendWithDecorator(ctx, node, session, MsgDecoratorFallback).catch(
+			(error) => {
+				logger.error(`ERROR:<MessageSendFallback> ${error}`);
+			},
+		);
+	});
 }
 
 export async function MessageDelete(ctx: Context, msg: MsgCache) {
