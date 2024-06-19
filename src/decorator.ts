@@ -50,8 +50,9 @@ export async function MsgDecorator(session: Session, node: ForwardNode) {
 function defaultDecoratorFallback({head, content}: ForwardMsg) {
 	let msg: Element[] = [];
 	let newContent: Element[] = [];
+	newContent.push(h("span", `[消息降级] `));
 	for (const key in content) {
-		if (content[key].type in ["img", "audio", "video", "file"]) {
+		if (["img", "audio", "video", "file"].includes(content[key].type)) {
 			newContent.push(h("span", ` [${content[key].type}] `));
 		} else {
 			newContent.push(content[key]);
