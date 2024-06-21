@@ -7,6 +7,10 @@
 
 </div>
 
+## Screenshot
+![screenshot](https://github.com/Nigh/forward-hime/assets/1407471/796b4f1c-c828-438c-85e9-71379c6c7e21)
+
+
 ## 安装
 
 在 Koishi WebUI 或 Koishi 桌面应用中，打开插件市场，搜索 `forward-hime`，找到本插件后，点击 `添加` 按钮后点击 `安装` 即可。
