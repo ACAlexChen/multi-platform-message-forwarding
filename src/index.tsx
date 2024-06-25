@@ -1,6 +1,44 @@
+/**
+ *                             _ooOoo_
+ *                            o8888888o
+ *                            88" . "88
+ *                            (| -_- |)
+ *                            O\  =  /O
+ *                         ____/`---'\____
+ *                       .'  \\|     |//  `.
+ *                      /  \\|||  :  |||//  \
+ *                     /  _||||| -:- |||||-  \
+ *                     |   | \\\  -  /// |   |
+ *                     | \_|  ''\---/''  |   |
+ *                     \  .-\__  `-`  ___/-. /
+ *                   ___`. .'  /--.--\  `. . __
+ *                ."" '<  `.___\_<|>_/___.'  >'"".
+ *               | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+ *               \  \ `-.   \_ __\ /__ _/   .-` /  /
+ *          ======`-.____`-.___\_____/___.-`____.-'======
+ *                             `=---='
+ *          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ *                     佛祖保佑        永无BUG
+ *            佛曰:
+ *                   写字楼里写字间，写字间里程序员；
+ *                   程序人员写程序，又拿程序换酒钱。
+ *                   酒醒只在网上坐，酒醉还来网下眠；
+ *                   酒醉酒醒日复日，网上网下年复年。
+ *                   但愿老死电脑间，不愿鞠躬老板前；
+ *                   奔驰宝马贵者趣，公交自行程序员。
+ *                   别人笑我忒疯癫，我笑自己命太贱；
+ *                   不见满街漂亮妹，哪个归得程序员？
+*/
+
+
+
+
+
+
+
 import { Context, Schema, h } from 'koishi'
 
-import type { KookBot } from '@koishijs/plugin-adapter-kook'
+
 import {} from '@koishijs/cache'
 
 
@@ -36,7 +74,7 @@ function generateRandomString(length: number): string {
 function KOOKCardMessage(){
 
   function plainText(text: string){
-    let message = {
+    const message = {
       "type": "section",
       "text": {
         "type": "plain-text",
@@ -47,7 +85,7 @@ function KOOKCardMessage(){
   }
 
   function kmarkdown(text: string){
-    let message = {
+    const message = {
       "type": "section",
       "text": {
         "type": "kmarkdown",
@@ -58,7 +96,7 @@ function KOOKCardMessage(){
   }
 
   function image(url: string){
-    let message = {
+    const message = {
       "type": "container",
       "elements": [
         {
@@ -272,7 +310,7 @@ export function apply(ctx: Context,cfg:Config) {
   
   
   if (cfg.Use_Unity_Message_ID === true && ctx.cache){
-    var cachechannel: string[] = []
+    const cachechannel: string[] = []
     if (cfg.Forward_Mode === '群聊互联！'){
       cfg.OT_EY.forEach((channels) => {
         channels.Original_Target.forEach((channel) => {
@@ -293,14 +331,14 @@ export function apply(ctx: Context,cfg:Config) {
       if (cachechannel.includes(session.channelId)){
         if (!(await ctx.cache.get('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`))){
           const unity_id_create = async() => {
-            let unity_id = generateRandomString(20)
+            const unity_id = generateRandomString(20)
             if (await ctx.cache.get('mpmf_unity', unity_id)){
               unity_id_create()
             } else {
               return unity_id
             }
           }
-          let unity_id = await unity_id_create()
+          const unity_id = await unity_id_create()
           await ctx.cache.set('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`, unity_id, cfg.Unity_Message_ID_Time)
           await ctx.cache.set('mpmf_unity', unity_id, [], cfg.Unity_Message_ID_Time)
         }
@@ -308,9 +346,9 @@ export function apply(ctx: Context,cfg:Config) {
     })
     ctx.on('message-deleted', async (session) => {
       if (cachechannel.includes(session.channelId)){
-        let unity_id = await ctx.cache.get('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
+        const unity_id = await ctx.cache.get('mpmf_message', `${session.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
         if (unity_id){
-          let message_list = (await ctx.cache.get('mpmf_unity', unity_id))
+          const message_list = (await ctx.cache.get('mpmf_unity', unity_id))
           message_list.forEach(async(message) => {
             await ctx.bots[`${message.split(':')[2]}:${message.split(':')[3]}`].deleteMessage(message.split(':')[1], message.split(':')[0])
             await ctx.cache.delete('mpmf_message', message)
@@ -322,12 +360,12 @@ export function apply(ctx: Context,cfg:Config) {
     })
   }
 
-  let pass = []
+  const pass = []
 
   ctx.command('TemporaryExclusion <time>', '临时排除转发功能（time单位：毫秒）', { authority: 3 })
   .action(({session} , time) => {
     pass.push(session.channelId)
-    let time_num = parseInt(time)
+    const time_num = parseInt(time)
     ctx.setTimeout(() => {
       pass.splice(pass.indexOf(session.channelId),1)
       session.send(`已恢复转发功能`)
@@ -346,11 +384,13 @@ export function apply(ctx: Context,cfg:Config) {
   })
 
 
+  ctx.on('message',async (session) => {
 
-  async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
-    ctx.on('message',async (session) => {
 
-      let receive_message_id = session.messageId
+    async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
+
+
+      const receive_message_id = session.messageId
       let send_message_id
 
       if (pass.includes(session.channelId)){
@@ -358,20 +398,22 @@ export function apply(ctx: Context,cfg:Config) {
       }
       try {
         if (session.channelId === Original_Guild && session.platform === Original_Platform && session.userId !== Original_BotID && session.userId !== Target_BotID){
+          let userName
           if (cfg.UserName_Setting === true){
             if (cfg.Nickname_Setting === false){
-              var userName = session.event.member.nick
+              userName = session.event.member.nick
               if (!userName){
                 if (typeof session.bot.getUser === 'function'){
                   userName = (await session.bot.getUser(session.userId)).nick
                 }
               }
             } else if (cfg.Nickname_Setting === true){
-              var userName = session.username
+              userName = session.username
             }
           }
+          let ChannelName
           if (cfg.ChannelName_Setting === true){
-            var ChannelName = session.event.channel.name
+            ChannelName = session.event.channel.name
             if (!ChannelName) {
                 if (typeof session.bot.getChannel === 'function') {
                     ChannelName = (await session.bot.getChannel(session.channelId)).name
@@ -381,21 +423,21 @@ export function apply(ctx: Context,cfg:Config) {
             }
           }
 
-          let message: any
-          let modules: object[] = []
+          let message
+          const modules: object[] = []
           if (cfg.KOOK_Use_CardMessage === true && Target_Platform === 'kook'){
 
-            if (false){
-              message = cfg.KOOK_CardMessage_MY_MESSAGE
+            if (cfg.KOOK_CardMessage_USE_MINE){
+              //message = cfg.KOOK_CardMessage_MY_MESSAGE
             } else {
-              let MessageStart_ARR = []
+              const MessageStart_ARR = []
               if (ChannelName) {
                 MessageStart_ARR.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
               }
               if (userName) {
                 MessageStart_ARR.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
               }
-              let MessageStart = MessageStart_ARR.join(' ')
+              const MessageStart = MessageStart_ARR.join(' ')
 
               if (cfg.Message_Wrapping_Setting === false){
                 modules.push({
@@ -420,19 +462,19 @@ export function apply(ctx: Context,cfg:Config) {
               }
             }
 
-            let Element = parseTextWithImages(session.content)
-            let elementDetermine = KOOKCardMessage()
+            const Element = parseTextWithImages(session.content)
+            const elementDetermine = KOOKCardMessage()
             for (let i = 0; i < Element.length; i++){
               if (isImgTag(Element[i])){
                 if (cfg.KOOK_CardMessage_compatibilityMode === true){
-                  let messageInfo = []
+                  const messageInfo = []
                   if (ChannelName) {
                     messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
                   }
                   if (userName) {
                     messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
                   }
-          
+
                   if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
                     messageInfo.push(`${session.content}`)
                   } else if (cfg.Message_Wrapping_Setting === false){
@@ -444,8 +486,8 @@ export function apply(ctx: Context,cfg:Config) {
                   send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
                   if (ctx.cache){
                     if (await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)){
-                      let unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
-                      let message_list = (await ctx.cache.get('mpmf_unity', unity_id))
+                      const unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
+                      const message_list = (await ctx.cache.get('mpmf_unity', unity_id))
                       message_list.push(`${send_message_id}:${Target_Guild}:${Target_Platform}:${Target_BotID}`)
                       await ctx.cache.set('mpmf_unity', unity_id, message_list, cfg.Unity_Message_ID_Time)
                     }
@@ -474,14 +516,14 @@ export function apply(ctx: Context,cfg:Config) {
 
 
           } else {
-            let messageInfo = []
+            const messageInfo = []
             if (ChannelName) {
               messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
             }
             if (userName) {
               messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
             }
-    
+
             if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
               messageInfo.push(`${session.content}`)
             } else if (cfg.Message_Wrapping_Setting === false){
@@ -491,8 +533,8 @@ export function apply(ctx: Context,cfg:Config) {
             }
             let quote_message_id: string = ''
             if (session.event.message.quote && ctx.cache && cfg.Use_Unity_Message_ID){
-              let unity_id_quote = await ctx.cache.get('mpmf_message', `${session.event.message.quote.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
-              let target_message_id = await ctx.cache.get('mpmf_unity', unity_id_quote)
+              const unity_id_quote = await ctx.cache.get('mpmf_message', `${session.event.message.quote.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
+              const target_message_id = await ctx.cache.get('mpmf_unity', unity_id_quote)
               for (let i = 0; i < target_message_id.length; i++){
                 if (target_message_id[i].split(':')[1] === Target_Guild && target_message_id[i].split(':')[2] === Target_Platform && target_message_id[i].split(':')[3] === Target_BotID){
                   quote_message_id = target_message_id[i].split(':')[0]
@@ -509,8 +551,8 @@ export function apply(ctx: Context,cfg:Config) {
             }
             if (ctx.cache){
               if (await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)){
-                let unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
-                let message_list = (await ctx.cache.get('mpmf_unity', unity_id))
+                const unity_id = await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)
+                const message_list = (await ctx.cache.get('mpmf_unity', unity_id))
                 message_list.push(`${send_message_id}:${Target_Guild}:${Target_Platform}:${Target_BotID}`)
                 await ctx.cache.set('mpmf_unity', unity_id, message_list, cfg.Unity_Message_ID_Time)
               }
@@ -520,111 +562,117 @@ export function apply(ctx: Context,cfg:Config) {
       } catch (error) {
         ctx.logger.error(`消息转发函数错误：${error}`)
       }
-    })
-  }
 
-
-
-
-
-  if (cfg.Forward_Mode === '单向转发'){
-    try {
-      for (let i = 0; i < cfg.Original_Target.length; i++){
-        let item = cfg.Original_Target[i]
-        Message_Forwarding(
-          item.Original_Guild,
-          item.Original_Platform,
-          item.Original_BotID,
-          item.Target_Guild, 
-          item.Target_Platform,
-          item.Target_BotID
-        )
-      }
-    } catch (error) {
-      ctx.logger.error(`单向转发模式错误：${error}`)
     }
-  } else if (cfg.Forward_Mode === '双向转发'){
-    try {
-      for (let i = 0; i < cfg.Original_Target.length; i++){
-        let item = cfg.Original_Target[i]
-        Message_Forwarding(
-          item.Original_Guild,
-          item.Original_Platform,
-          item.Original_BotID,
-          item.Target_Guild,
-          item.Target_Platform,
-          item.Target_BotID
-        )
-        Message_Forwarding(
-          item.Target_Guild,
-          item.Target_Platform,
-          item.Target_BotID,
-          item.Original_Guild,
-          item.Original_Platform,
-          item.Original_BotID
-        )
+
+
+    if (cfg.Forward_Mode === '单向转发'){
+      try {
+        for (let i = 0; i < cfg.Original_Target.length; i++){
+          const item = cfg.Original_Target[i]
+          Message_Forwarding(
+            item.Original_Guild,
+            item.Original_Platform,
+            item.Original_BotID,
+            item.Target_Guild,
+            item.Target_Platform,
+            item.Target_BotID
+          )
+        }
+      } catch (error) {
+        ctx.logger.error(`单向转发模式错误：${error}`)
       }
-    } catch (error) {
-      ctx.logger.error(`双向转发模式错误：${error}`)
-    }
-  } else if (cfg.Forward_Mode === '群聊互联！'){
-    try {
-      let existingItems = []
-      function itemExists(item, array) {
-        return array.some(
-          existingItem =>
-            JSON.stringify(existingItem) === JSON.stringify(item)
-        )
+    } else if (cfg.Forward_Mode === '双向转发'){
+      try {
+        for (let i = 0; i < cfg.Original_Target.length; i++){
+          const item = cfg.Original_Target[i]
+          Message_Forwarding(
+            item.Original_Guild,
+            item.Original_Platform,
+            item.Original_BotID,
+            item.Target_Guild,
+            item.Target_Platform,
+            item.Target_BotID
+          )
+          Message_Forwarding(
+            item.Target_Guild,
+            item.Target_Platform,
+            item.Target_BotID,
+            item.Original_Guild,
+            item.Original_Platform,
+            item.Original_BotID
+          )
+        }
+      } catch (error) {
+        ctx.logger.error(`双向转发模式错误：${error}`)
       }
-      for (let f = 0; f < cfg.OT_EY.length; f++) {
-        for (let i = 0; i < cfg.OT_EY[f].Original_Target.length; i++) {
-          for (let o = i + 1; o < cfg.OT_EY[f].Original_Target.length; o++) {
-            let item_i = cfg.OT_EY[f].Original_Target[i]
-            let item_o = cfg.OT_EY[f].Original_Target[o]
-            let item_array = {
-              Original_Guild: item_i.Original_Guild,
-              Original_Platform: item_i.Original_Platform,
-              Original_BotID: item_i.Original_BotID,
-              Target_Guild: item_o.Original_Guild,
-              Target_Platform: item_o.Original_Platform,
-              Target_BotID: item_o.Original_BotID
-            }
-            let reverse_item_array = {
-              Original_Guild: item_o.Original_Guild,
-              Original_Platform: item_o.Original_Platform,
-              Original_BotID: item_o.Original_BotID,
-              Target_Guild: item_i.Original_Guild,
-              Target_Platform: item_i.Original_Platform,
-              Target_BotID: item_i.Original_BotID
-            }
-            if (!itemExists(item_array, existingItems)) {
-              existingItems.push(item_array)
-              Message_Forwarding(
-                item_i.Original_Guild,
-                item_i.Original_Platform,
-                item_i.Original_BotID,
-                item_o.Original_Guild,
-                item_o.Original_Platform,
-                item_o.Original_BotID
-              )
-            }
-            if (!itemExists(reverse_item_array, existingItems)) {
-              existingItems.push(reverse_item_array)
-              Message_Forwarding(
-                item_o.Original_Guild,
-                item_o.Original_Platform,
-                item_o.Original_BotID,
-                item_i.Original_Guild,
-                item_i.Original_Platform,
-                item_i.Original_BotID
-              )
+    } else if (cfg.Forward_Mode === '群聊互联！'){
+      try {
+        const existingItems = []
+        function itemExists(item, array) {
+          return array.some(
+            existingItem =>
+              JSON.stringify(existingItem) === JSON.stringify(item)
+          )
+        }
+        for (let f = 0; f < cfg.OT_EY.length; f++) {
+          for (let i = 0; i < cfg.OT_EY[f].Original_Target.length; i++) {
+            for (let o = i + 1; o < cfg.OT_EY[f].Original_Target.length; o++) {
+              const item_i = cfg.OT_EY[f].Original_Target[i]
+              const item_o = cfg.OT_EY[f].Original_Target[o]
+              const item_array = {
+                Original_Guild: item_i.Original_Guild,
+                Original_Platform: item_i.Original_Platform,
+                Original_BotID: item_i.Original_BotID,
+                Target_Guild: item_o.Original_Guild,
+                Target_Platform: item_o.Original_Platform,
+                Target_BotID: item_o.Original_BotID
+              }
+              const reverse_item_array = {
+                Original_Guild: item_o.Original_Guild,
+                Original_Platform: item_o.Original_Platform,
+                Original_BotID: item_o.Original_BotID,
+                Target_Guild: item_i.Original_Guild,
+                Target_Platform: item_i.Original_Platform,
+                Target_BotID: item_i.Original_BotID
+              }
+              if (!itemExists(item_array, existingItems)) {
+                existingItems.push(item_array)
+                Message_Forwarding(
+                  item_i.Original_Guild,
+                  item_i.Original_Platform,
+                  item_i.Original_BotID,
+                  item_o.Original_Guild,
+                  item_o.Original_Platform,
+                  item_o.Original_BotID
+                )
+              }
+              if (!itemExists(reverse_item_array, existingItems)) {
+                existingItems.push(reverse_item_array)
+                Message_Forwarding(
+                  item_o.Original_Guild,
+                  item_o.Original_Platform,
+                  item_o.Original_BotID,
+                  item_i.Original_Guild,
+                  item_i.Original_Platform,
+                  item_i.Original_BotID
+                )
+              }
             }
           }
         }
+      } catch (error) {
+        ctx.logger.error(`群聊互联模式错误：${error}`)
       }
-    } catch (error) {
-      ctx.logger.error(`群聊互联模式错误：${error}`)
     }
-  }
+
+
+
+  })
+
+
+
+
+
 }
 
