@@ -37,7 +37,7 @@
 
 
 import { Context, Schema, h } from 'koishi'
-
+import {} from 'koishi-plugin-binding-id-converter'
 
 import {} from '@koishijs/cache'
 
@@ -49,7 +49,8 @@ export const reusable = true
 
 export const inject = {
   optional: [
-    'cache'
+    'cache',
+    'idconverter'
   ],
 }
 
@@ -175,6 +176,9 @@ export interface Config {
   ChannelName_Setting: boolean
   Nickname_Setting: boolean
   Message_Wrapping_Setting: boolean
+  At_Setting: boolean // TODO
+  At_Target_Platform_ID: boolean // TODO
+  Markdown: boolean // TODO
 
   Forward_Mode: string
   Original_Target: Original_Target[]
@@ -227,8 +231,18 @@ export const Config: Schema<Config> = Schema.intersect([
   ]),
 
   Schema.object({
-    Message_Wrapping_Setting: Schema.boolean().description('是否自动换行消息原文与消息开头').default(false)
+    Message_Wrapping_Setting: Schema.boolean().description('是否自动换行消息原文与消息开头').default(false),
+    Markdown: Schema.boolean().description('是否在支持Markdown的平台上使用Markdown修饰（优先度低于KOOK卡片消息）').default(false).hidden(),
+    At_Setting: Schema.boolean().description('是否自动将@用户ID转化为名称').default(false).hidden()
   }),
+
+  Schema.union([
+    Schema.object({
+      At_Setting: Schema.const(false),
+      At_Target_Platform_ID: Schema.boolean().description('是否自动将@用户ID通过idconverter转化为目标平台的ID（需idconverter服务）').default(false)
+    }),
+    Schema.object({})
+  ]),
 
   Schema.object({
     Forward_Mode: Schema.union(['单向转发','双向转发','群聊互联！']).required().description('转发模式').role('radio'),
@@ -296,7 +310,7 @@ export const Config: Schema<Config> = Schema.intersect([
     }),
     Schema.object({}),
   ]),
-  
+
   Schema.object({
     KOOK_CardMessage_compatibilityMode: Schema.boolean().description('是否使用兼容模式').default(true).hidden()
   })
@@ -306,9 +320,6 @@ export const Config: Schema<Config> = Schema.intersect([
 
 export function apply(ctx: Context,cfg:Config) {
 
-
-  
-  
   if (cfg.Use_Unity_Message_ID === true && ctx.cache){
     const cachechannel: string[] = []
     if (cfg.Forward_Mode === '群聊互联！'){
@@ -359,6 +370,8 @@ export function apply(ctx: Context,cfg:Config) {
       }
     })
   }
+
+
 
   const pass = []
 
@@ -542,12 +555,56 @@ export function apply(ctx: Context,cfg:Config) {
                 }
               }
             }
+            let AtMessage
             message = messageInfo.join('')
-            if (session.event.message.quote && ctx.cache && cfg.Use_Unity_Message_ID){
-              console.log(quote_message_id)
-              send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,h('quote', {id: quote_message_id}) + message)).toString()
+            if (/<at id="([^"]*)"\/>/.exec(message)){
+              if (cfg.At_Setting){
+                const atList = []
+                AtMessage = message.replace(/<at id="([^"]*)"\/>/,(match, p1) => {
+                  atList.push({match:match,p1:p1,userName:null})
+                })
+                for (let i = 0; i < atList.length; i++){
+                  let userName
+                  const user = await session.bot.getGuildMember(session.guildId, atList[i].p1)
+                  if (user.nick){
+                    userName = user.nick
+                  } else {
+                    userName = user.user.name
+                  }
+                  atList[i].userName = userName
+                }
+                AtMessage = message.replace(/<at id="([^"]*)"\/>/g,(match, p1) => {
+                  const newName = atList.find(item => item.p1 === p1).userName
+                  return <at name={newName}/>
+                })
+              } else if (cfg.At_Target_Platform_ID){
+                const atList = []
+                AtMessage = message.replace(/<at id="([^"]*)"\/>/,(match, p1) => {
+                  atList.push({match:match,p1:p1,userId:null})
+                })
+                for (let i = 0; i < atList.length; i++){
+                  const userAid = await ctx.database.get('binding',{platform:session.platform,pid:atList[i].p1})
+                  if (userAid.length > 0){
+                    const userPid = await ctx.database.get('binding',{platform:Target_Platform,aid:userAid[0].aid})
+                    atList[i].userId = userPid[0].pid
+                  } else {
+                    atList[i].userId = atList[i].p1
+                  }
+                }
+                AtMessage = message.replace(/<at id="([^"]*)"\/>/g,(match, p1) => {
+                  const newId = atList.find(item => item.p1 === p1).userId
+                  return <at id={newId}/>
+                })
+              } else {
+                AtMessage = message
+              }
             } else {
-              send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,message)).toString()
+              AtMessage = message
+            }
+            if (session.event.message.quote && ctx.cache && cfg.Use_Unity_Message_ID){
+              send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,h('quote', {id: quote_message_id}) + <>{AtMessage}</>)).toString()
+            } else {
+              send_message_id = (await ctx.bots[`${Target_Platform}:${Target_BotID}`].sendMessage(Target_Guild,AtMessage)).toString()
             }
             if (ctx.cache){
               if (await ctx.cache.get('mpmf_message', `${receive_message_id}:${session.channelId}:${session.platform}:${session.selfId}`)){

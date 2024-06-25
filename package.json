@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-multi-platform-message-forwarding",
   "description": "多平台消息转发",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -25,7 +25,8 @@
     "message-forwarding"
   ],
   "peerDependencies": {
-    "koishi": "^4.17.5"
+    "koishi": "^4.17.5",
+    "@satorijs/element": "^3.1.7"
   },
   "koishi": {
     "browser": true
