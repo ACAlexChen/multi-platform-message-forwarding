@@ -179,6 +179,8 @@ export interface Config {
   At_Setting: boolean // TODO
   At_Target_Platform_ID: boolean // TODO
   Markdown: boolean // TODO
+  customMarkdown: string // TODO
+  UseMarkdownPlatform: string[]
 
   Forward_Mode: string
   Original_Target: Original_Target[]
@@ -232,9 +234,16 @@ export const Config: Schema<Config> = Schema.intersect([
 
   Schema.object({
     Message_Wrapping_Setting: Schema.boolean().description('是否自动换行消息原文与消息开头').default(false),
-    Markdown: Schema.boolean().description('是否在支持Markdown的平台上使用Markdown修饰（优先度低于KOOK卡片消息）').default(false).hidden(),
+    Markdown: Schema.boolean().description('是否在支持Markdown的平台上使用Markdown修饰（优先度低于KOOK卡片消息）').default(false),
     At_Setting: Schema.boolean().description('是否自动将@用户ID转化为名称').default(false).hidden()
   }),
+
+  Schema.union([
+    Schema.object({
+      Markdown: Schema.const(true),
+      UseMarkdownPlatform: Schema.array(String).description('使用Markdown的平台列表').default([]).role('table')
+    })
+  ]),
 
   Schema.union([
     Schema.object({
@@ -399,7 +408,6 @@ export function apply(ctx: Context,cfg:Config) {
 
   ctx.on('message',async (session) => {
 
-
     async function Message_Forwarding(Original_Guild : string, Original_Platform : string, Original_BotID: string, Target_Guild : string, Target_Platform : string, Target_BotID: string) {
 
 
@@ -530,20 +538,35 @@ export function apply(ctx: Context,cfg:Config) {
 
           } else {
             const messageInfo = []
-            if (ChannelName) {
-              messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
-            }
-            if (userName) {
-              messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
+            if (cfg.Markdown && cfg.UseMarkdownPlatform.includes(Target_Platform)){
+              if (ChannelName && userName){
+                messageInfo.push(cfg.ChannelName_Package_Format[0] + ChannelName + cfg.ChannelName_Package_Format[1] + cfg.UserName_Package_Format[0] + userName + cfg.UserName_Package_Format[1])
+              } else if (ChannelName && !userName){
+                messageInfo.push(cfg.ChannelName_Package_Format[0] + ChannelName + cfg.ChannelName_Package_Format[1])
+              } else if (!ChannelName && userName){
+                messageInfo.push(cfg.UserName_Package_Format[0] + userName + cfg.UserName_Package_Format[1])
+              }
+              if (ChannelName || userName){
+                messageInfo.push('&#10;---&#10;')
+              }
+              messageInfo.push('> ' + session.content.replace(/\n/g, '\n> '))
+              console.log(messageInfo)
+            } else {
+              if (ChannelName) {
+                messageInfo.push(`${cfg.ChannelName_Package_Format[0]}${ChannelName}${cfg.ChannelName_Package_Format[1]}`)
+              }
+              if (userName) {
+                messageInfo.push(`${cfg.UserName_Package_Format[0]}${userName}${cfg.UserName_Package_Format[1]}`)
+              }
+              if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
+                messageInfo.push(`${session.content}`)
+              } else if (cfg.Message_Wrapping_Setting === false){
+                messageInfo.push(`: ${session.content}`)
+              } else if (cfg.Message_Wrapping_Setting === true){
+                messageInfo.push(`: &#10;${session.content}`)
+              }
             }
 
-            if (cfg.UserName_Setting === false && cfg.ChannelName_Setting === false){
-              messageInfo.push(`${session.content}`)
-            } else if (cfg.Message_Wrapping_Setting === false){
-              messageInfo.push(`: ${session.content}`)
-            } else if (cfg.Message_Wrapping_Setting === true){
-              messageInfo.push(`: &#10;${session.content}`)
-            }
             let quote_message_id: string = ''
             if (session.event.message.quote && ctx.cache && cfg.Use_Unity_Message_ID){
               const unity_id_quote = await ctx.cache.get('mpmf_message', `${session.event.message.quote.messageId}:${session.channelId}:${session.platform}:${session.selfId}`)
