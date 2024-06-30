@@ -8,8 +8,8 @@
 </div>
 
 ## Screenshot
-![screenshot](https://github.com/Nigh/forward-hime/assets/1407471/796b4f1c-c828-438c-85e9-71379c6c7e21)
 
+![screenshot](https://github.com/Nigh/forward-hime/assets/1407471/796b4f1c-c828-438c-85e9-71379c6c7e21)
 
 ## 安装
 

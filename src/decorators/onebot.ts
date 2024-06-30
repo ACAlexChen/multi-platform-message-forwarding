@@ -1,14 +1,51 @@
 import {Element, Session, h} from "koishi";
 
+function cqJsonTranslator(content: Element[], elem: Element) {
+	let json = JSON.parse(elem.attrs.data);
+	let hit = 0;
+	if (json) {
+		if (json.prompt) {
+			hit += 1;
+			content.push(h("p", `${json.prompt}`));
+		}
+		if (json.meta && json.meta.detail_1) {
+			if (json.meta.detail_1.preview) {
+				hit += 1;
+				content.push(h.image(json.meta.detail_1.preview));
+			}
+			if (json.meta.detail_1.qqdocurl) {
+				hit += 1;
+				content.push(h("span", `${json.meta.detail_1.qqdocurl}`));
+			}
+		}
+	}
+	if (hit === 0) {
+		content.push(h("span", `[CQ:JSON消息]`));
+	}
+}
+
 function Middleware(session: Session) {
 	const platform = guessPlatform(session);
 
+	let newContent: Element[] = [];
 	let head: Element[] = [
 		h("b", `${session.username}`),
 		h("span", " 转发自 "),
 		h("i", `${platform}`),
 		h("span", `：`),
 	];
+	if (platform === "QQ") {
+		for (const key in session.elements) {
+			if (session.elements[key].type === "forward") {
+				newContent.push(h("span", `[CQ:转发消息]`));
+			} else if (session.elements[key].type === "json") {
+				cqJsonTranslator(newContent, session.elements[key]);
+			} else {
+				newContent.push(session.elements[key]);
+			}
+		}
+		return {head: head, content: newContent};
+	}
 	return {head: head, content: session.elements};
 }
 
