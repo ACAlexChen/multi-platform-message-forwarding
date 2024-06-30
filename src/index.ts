@@ -1,7 +1,8 @@
 import {Context} from "koishi";
 import {createConfig, ConfigSet} from "./config";
 import {logger} from "./logger";
-import {MessageForward, MessageDelete, MessageEdit} from "./message";
+import {MessageForward, MessageDelete, MsgUUIDFromSession, MessageEdit} from "./message";
+import {MsgMiddlewareCache} from "./decorator";
 
 export const name = `forward hime - 转发姬`;
 export const usage = `
@@ -53,7 +54,7 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 						session.platform,
 						session.channelId + ":" + session.messageId,
 					);
-					let uuid = session.channelId + ":" + session.messageId;
+					let uuid = MsgUUIDFromSession(session);
 					msgCache({
 						platform: session.platform,
 						bot: group.Nodes[k].BotID,
@@ -65,6 +66,9 @@ export function apply(ctx: Context, cfg: ConfigSet) {
 					break;
 				}
 			}
+		}
+		if (hitGroup.length > 0) {
+			await MsgMiddlewareCache(session);
 		}
 		for (const g in hitGroup) {
 			const group = cfg.ForwardGroups[hitGroup[g]];

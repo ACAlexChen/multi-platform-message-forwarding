@@ -22,10 +22,15 @@ async function MessageSendWithDecorator(
 				msgid: res[0],
 				uuid,
 			};
-			msgCache(mc);
-			logger.debug(`[MessageForward] to ${mc.platform} ${mc.uuid}`);
+			if (!mc.msgid) {
+				throw new Error(`Empty Message ID`);
+			} else {
+				msgCache(mc);
+				logger.debug(`[MessageForward] to ${mc.platform} ${mc.uuid}`);
+			}
 		})
 		.catch((error) => {
+			logger.error(`content: ${content}`);
 			throw error;
 		});
 }
@@ -77,4 +82,8 @@ function botExistsCheck(ctx: Context, node: ForwardNode) {
 		return false;
 	}
 	return true;
+}
+
+export function MsgUUIDFromSession(session: Session) {
+	return session.channelId + ":" + session.messageId;
 }
