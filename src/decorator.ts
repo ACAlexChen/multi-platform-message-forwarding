@@ -1,11 +1,17 @@
 import {Session, Element, h} from "koishi";
 import {ForwardNode} from "./config";
+import {MsgUUIDFromSession} from "./message";
 
 import * as decorator from "./decorators";
 
 interface ForwardMsg {
 	head: Element[];
 	content: Element[];
+}
+
+interface FMsgCache {
+	UUID: string;
+	msg: ForwardMsg;
 }
 
 function defaultDecorator({head, content}: ForwardMsg) {
@@ -26,20 +32,55 @@ function defaultMiddleware(session: Session) {
 
 const localDecorators = [atTranslator, quoteTranslator];
 
-export async function MsgDecorator(session: Session, node: ForwardNode) {
+let msgMiddleCache: FMsgCache[] = [];
+function msgMiddleCacheAppend(msg: FMsgCache) {
+	msgMiddleCache.push(msg);
+	if (msgMiddleCache.length > 16) {
+		msgMiddleCache.shift();
+	}
+	logger.debug(`[msgMiddleCache]`, msgMiddleCache.length);
+}
+function msgMiddleCacheFind(uuid: string) {
+	for (const item of msgMiddleCache) {
+		if (item.UUID === uuid) {
+			return item.msg;
+		}
+	}
+	return null;
+}
+
+function MsgToMiddleware(session: Session) {
 	let elems: ForwardMsg = {head: [], content: []};
 	let _platform_in = decorator[session.platform];
-	let _platform_out = decorator[node.Platform];
 	if (_platform_in && typeof _platform_in.Middleware === "function") {
 		elems = _platform_in.Middleware(session);
 	} else {
 		elems = defaultMiddleware(session);
 	}
+	return elems;
+}
+
+export async function MsgMiddlewareCache(session: Session) {
+	let elems: ForwardMsg = MsgToMiddleware(session);
+	msgMiddleCacheAppend({UUID: MsgUUIDFromSession(session), msg: elems});
+	logger.debug(`[msgMiddleCache] CACHED`);
+}
+export async function MsgDecorator(session: Session, node: ForwardNode) {
+	let elems: ForwardMsg;
+	let _platform_out = decorator[node.Platform];
+
+	let elemCache = msgMiddleCacheFind(MsgUUIDFromSession(session));
+	if (elemCache) {
+		logger.debug(`[msgMiddleCache] HIT`);
+		elems = elemCache;
+	} else {
+		logger.debug(`[msgMiddleCache] MISSED`);
+		elems = MsgToMiddleware(session);
+	}
 
 	for (const fn of localDecorators) {
 		elems = (await fn(session, node, elems)) as ForwardMsg;
 	}
-
 	if (_platform_out && typeof _platform_out.Decorator === "function") {
 		return _platform_out.Decorator(elems);
 	} else {
@@ -110,7 +151,8 @@ async function quoteTranslator(
 	if (cache) {
 		let msgid = await msgCacheGetLocalIDByUUID(node, cache.uuid);
 		if (msgid) {
-			head.unshift(h("quote", {id: msgid}));
+			let newHead = [h("quote", {id: msgid})].concat(head);
+			return {head: newHead, content: content} as ForwardMsg;
 		} else {
 			logger.error(`[msgCacheGetLocalIDByUUID] ${cache.uuid} not found`);
 		}
