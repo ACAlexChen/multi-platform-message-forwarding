@@ -110,7 +110,8 @@ async function quoteTranslator(
 	if (cache) {
 		let msgid = await msgCacheGetLocalIDByUUID(node, cache.uuid);
 		if (msgid) {
-			head.unshift(h("quote", {id: msgid}));
+			let newHead = [h("quote", {id: msgid})].concat(head);
+			return {head: newHead, content: content} as ForwardMsg;
 		} else {
 			logger.error(`[msgCacheGetLocalIDByUUID] ${cache.uuid} not found`);
 		}
