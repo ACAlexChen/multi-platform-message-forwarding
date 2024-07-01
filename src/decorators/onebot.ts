@@ -11,7 +11,7 @@ function cqJsonTranslator(content: Element[], elem: Element) {
 		if (json.meta && json.meta.detail_1) {
 			if (json.meta.detail_1.preview) {
 				hit += 1;
-				content.push(h.image(json.meta.detail_1.preview));
+				content.push(h.image(json.meta.detail_1.preview, "image/jpeg"));
 			}
 			if (json.meta.detail_1.qqdocurl) {
 				hit += 1;
